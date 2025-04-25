@@ -1,36 +1,160 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PRS Frontend
+
+A modern, responsive frontend for the Prompt and Response System (PRS) built with Next.js, Mantine UI, and Tailwind CSS.
+
+## Overview
+
+PRS is a comprehensive customer interaction management system featuring:
+
+- **Table/Seat Management**: Organize and monitor seating arrangements
+- **Prompts/Responses Processing**: Create and manage automated prompts and collect customer responses
+- **Service Request Management**: Handle customer assistance needs efficiently
+- **Real-time Monitoring**: Track activities across your system in real-time
+
+## Tech Stack
+
+- **Framework**: [Next.js](https://nextjs.org/) (App Router)
+- **UI Library**: [Mantine UI](https://mantine.dev/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **API Communication**: [Axios](https://axios-http.com/)
+- **State Management**: React Hooks
+- **Form Handling**: Mantine Form
+- **Real-time Features**: WebSockets
+
+## Project Structure
+
+```
+src/
+├── app/ - Next.js app router pages
+│   ├── auth/ - Authentication pages
+│   ├── dashboard/ - Main dashboard
+│   ├── tables/ - Table management
+│   ├── sessions/ - Session management
+│   └── ...
+├── components/ - Reusable UI components
+│   ├── auth/ - Authentication components
+│   ├── layouts/ - Layout components
+│   └── ...
+└── lib/ - Utility functions and services
+    ├── api/ - API client and services
+    │   ├── services/ - API services for different features
+    │   └── types/ - TypeScript interfaces and types
+    └── ...
+```
+
+## API Services
+
+The application communicates with the PRS backend API through these services:
+
+- `authService` - Authentication and user management
+- `tableService` - Table CRUD operations
+- `seatService` - Seat management
+- `sessionService` - Session operations
+- `promptService` - Prompt creation and management
+- `responseService` - Response collection and analysis
+- `serviceRequestService` - Customer service request handling
+- `notificationService` - System notifications
+- `useWebSocket` - Real-time communication hook
+
+## Features
+
+1. **Authentication System**
+
+   - Login/logout functionality
+   - Route protection
+   - User session management
+
+2. **Dashboard**
+
+   - Overview statistics
+   - Visual representation of data
+   - Quick access to key features
+
+3. **Table Management**
+
+   - Create, update, delete tables
+   - Assign seats
+   - Monitor table status
+
+4. **Prompt and Response System**
+
+   - Create various prompt types
+   - Collect and analyze responses
+   - Generate insights from data
+
+5. **Service Request Handling**
+
+   - Create and track service requests
+   - Assign staff to requests
+   - Monitor resolution status
+
+6. **Real-time Notifications**
+   - WebSocket-based updates
+   - Persistent notifications
+   - Priority-based alert system
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js 18.0 or higher
+- Yarn package manager
+
+### Installation
+
+1. Clone the repository
+
+   ```
+   git clone <repository-url>
+   cd prs-frontend
+   ```
+
+2. Install dependencies
+
+   ```
+   yarn install
+   ```
+
+3. Create a `.env.local` file with the following variables
+
+   ```
+   NEXT_PUBLIC_API_URL=http://localhost:3000/api
+   NEXT_PUBLIC_WS_URL=ws://localhost:3000
+   ```
+
+4. Start the development server
+
+   ```
+   yarn dev
+   ```
+
+5. Open your browser and navigate to `http://localhost:3000`
+
+## Building for Production
+
+```
+yarn build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then start the production server:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+yarn start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment Variables
 
-## Learn More
+- `NEXT_PUBLIC_API_URL`: URL to the PRS backend API
+- `NEXT_PUBLIC_WS_URL`: WebSocket URL for real-time communication
 
-To learn more about Next.js, take a look at the following resources:
+## Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This application can be deployed on any platform that supports Next.js, such as:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [Vercel](https://vercel.com/)
+- [Netlify](https://www.netlify.com/)
+- [AWS Amplify](https://aws.amazon.com/amplify/)
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+[MIT](LICENSE)

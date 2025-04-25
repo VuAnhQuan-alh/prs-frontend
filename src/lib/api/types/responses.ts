@@ -1,0 +1,54 @@
+import { Prompt, PromptResponseOption } from "./prompts";
+import { Session } from "./sessions";
+import { Seat } from "./tables";
+
+export interface Response {
+  id: string;
+  value: string;
+  seatId: string;
+  promptId: string;
+  sessionId: string;
+  responseOptionId?: string;
+  timestamp: string;
+  createdAt: string;
+  updatedAt: string;
+  prompt?: Prompt;
+  responseOption?: PromptResponseOption;
+  session?: Session;
+  seat?: Seat;
+}
+
+export interface CreateResponseRequest {
+  value: string;
+  seatId: string;
+  promptId: string;
+  sessionId: string;
+  responseOptionId?: string;
+}
+
+export interface UpdateResponseRequest {
+  value?: string;
+  responseOptionId?: string;
+}
+
+export interface ResponseFilters {
+  seatId?: string;
+  promptId?: string;
+  sessionId?: string;
+  timestampFrom?: string;
+  timestampTo?: string;
+}
+
+export interface ResponseStats {
+  totalResponses: number;
+  responsesByPrompt: {
+    promptId: string;
+    promptTitle: string;
+    count: number;
+  }[];
+  responsesBySession: {
+    sessionId: string;
+    count: number;
+  }[];
+  averageResponseTime: number;
+}
