@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import {
   tableService,
   seatService,
@@ -18,7 +17,10 @@ import {
   SeatStatus,
 } from "@/lib/api/types/tables";
 import { Prompt, PromptStatusEnum } from "@/lib/api/types/prompts";
-import { ServiceRequest } from "@/lib/api/types/service-requests";
+import {
+  ServiceRequest,
+  ServiceRequestStatus,
+} from "@/lib/api/types/service-requests";
 import { Response } from "@/lib/api/types/responses";
 import {
   Title,
@@ -209,7 +211,7 @@ export default function TablesPage() {
         tableId,
         status: PromptStatusEnum.PROCESSED,
       });
-      await fetchPrompts();
+      setSelectedTable((table) => (table ? { ...table, promptId } : null));
     } catch (error) {
       console.error("Failed to send prompt:", error);
       notifications.show({
@@ -306,6 +308,7 @@ export default function TablesPage() {
       setLoadingDetails(true);
 
       // Toggle the status between ACTIVE and INACTIVE
+      // const newStatus = SeatStatus.ACTIVE;
       const newStatus =
         seat.status === SeatStatus.ACTIVE
           ? SeatStatus.INACTIVE
@@ -551,7 +554,7 @@ export default function TablesPage() {
   // };
 
   return (
-    <DashboardLayout>
+    <>
       <Group justify="space-between" align="center" mb="lg">
         <Title order={2}>Tables</Title>
         <Group>
@@ -792,9 +795,11 @@ export default function TablesPage() {
                         <Card
                           key={seat.id}
                           bg={
-                            seat.status === SeatStatus.ACTIVE
-                              ? "var(--mantine-color-blue-light)"
-                              : "var(--mantine-color-gray-0)"
+                            seat.user
+                              ? "var(--mantine-color-green-1)"
+                              : seat.status === SeatStatus.ACTIVE
+                              ? "var(--mantine-color-white-1)"
+                              : "var(--mantine-color-gray-1"
                           }
                           withBorder
                           p="sm"
@@ -822,9 +827,7 @@ export default function TablesPage() {
                                 <Text size="sm" c="dimmed">
                                   {seat.status === SeatStatus.ACTIVE
                                     ? seat.user
-                                      ? seat.user.name
-                                          .split(" ")[0]
-                                          .substring(0, 8) + "..."
+                                      ? seat.user.name.substring(0, 16) + "..."
                                       : "Not occupied"
                                     : "Not active"}
                                 </Text>
@@ -897,7 +900,7 @@ export default function TablesPage() {
                       placeholder="Select prompt"
                       data={tablePrompts.map((p) => ({
                         value: p.id,
-                        label: p.content || p.content.substring(0, 30),
+                        label: p.title || p.content.substring(0, 30),
                       }))}
                       onChange={(value) => setTablePrompt(value)}
                       searchable
@@ -1082,11 +1085,12 @@ export default function TablesPage() {
                               <MantineTable.Td>
                                 <Badge
                                   color={
-                                    request.status === "OPEN"
+                                    request.status === ServiceRequestStatus.OPEN
                                       ? "blue"
                                       : request.status === "IN_PROGRESS"
                                       ? "yellow"
-                                      : request.status === "RESOLVED"
+                                      : request.status ===
+                                        ServiceRequestStatus.RESOLVED
                                       ? "green"
                                       : "red"
                                   }
@@ -1285,6 +1289,6 @@ export default function TablesPage() {
           </Stack>
         </form>
       </Modal>
-    </DashboardLayout>
+    </>
   );
 }

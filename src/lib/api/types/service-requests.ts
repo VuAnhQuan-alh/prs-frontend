@@ -29,9 +29,9 @@ export enum ServiceRequestType {
 }
 
 export enum ServiceRequestStatus {
-  OPEN = "OPEN",
+  OPEN = "PENDING",
   IN_PROGRESS = "IN_PROGRESS",
-  RESOLVED = "RESOLVED",
+  RESOLVED = "COMPLETED",
   CANCELLED = "CANCELLED",
 }
 

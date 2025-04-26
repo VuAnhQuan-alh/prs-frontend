@@ -18,7 +18,6 @@ import {
   ThemeIcon,
   rem,
 } from "@mantine/core";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import {
   IconUsers,
   IconTable,
@@ -48,7 +47,7 @@ interface StatsCardProps {
 
 function StatsCard({ title, value, icon, description, diff }: StatsCardProps) {
   return (
-    <Paper radius="md" withBorder p="md" h={150}>
+    <Paper radius="md" withBorder p="md" mih={150}>
       <Group justify="space-between">
         <Text size="xs" fw={700} c="dimmed">
           {title}
@@ -58,12 +57,12 @@ function StatsCard({ title, value, icon, description, diff }: StatsCardProps) {
         </ThemeIcon>
       </Group>
 
-      <Title order={2} fw={700} mt="md">
+      <Title order={2} fw={700} my="sm">
         {value}
       </Title>
 
       {description && (
-        <Group mt="md" align="center" gap="xs">
+        <Group align="center" gap="xs" pos="absolute" bottom="md" left="md">
           {diff && (
             <ThemeIcon
               color={diff > 0 ? "green" : "red"}
@@ -169,7 +168,7 @@ export default function Dashboard() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <Title order={1} mb={30}>
         Dashboard
       </Title>
@@ -202,7 +201,7 @@ export default function Dashboard() {
           description="deployed in system"
         />
         <StatsCard
-          title="OPEN SERVICE REQUESTS"
+          title="SERVICE REQUESTS"
           value={stats.openServiceRequests}
           icon={<IconBell size="1.5rem" stroke={1.5} />}
           description="require attention"
@@ -452,6 +451,6 @@ export default function Dashboard() {
           </Paper>
         </Grid.Col>
       </Grid>
-    </DashboardLayout>
+    </>
   );
 }

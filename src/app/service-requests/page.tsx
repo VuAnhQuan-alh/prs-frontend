@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { seatService, serviceRequestService } from "@/lib/api/services";
 import { tableService } from "@/lib/api/services"; // Add this import
 import {
@@ -313,7 +312,7 @@ export default function ServiceRequestsPage() {
   );
 
   return (
-    <DashboardLayout>
+    <>
       <Group justify="space-between" mb="lg">
         <Title order={2}>Service Requests</Title>
 
@@ -344,7 +343,7 @@ export default function ServiceRequestsPage() {
       <Card shadow="sm" p="lg" mb="md">
         <Box pos="relative">
           <LoadingOverlay visible={loading} overlayProps={{ blur: 2 }} />
-          <Table highlightOnHover withTableBorder>
+          <Table highlightOnHover striped>
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>Type</Table.Th>
@@ -563,6 +562,6 @@ export default function ServiceRequestsPage() {
           </form>
         )}
       </Modal>
-    </DashboardLayout>
+    </>
   );
 }

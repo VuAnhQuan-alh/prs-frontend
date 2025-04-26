@@ -14,7 +14,6 @@ class AuthService {
       `${this.BASE_URL}/login`,
       data
     );
-    console.log("Login response:", response);
 
     if (response.accessToken && typeof window !== "undefined") {
       localStorage.setItem("auth_token", response.accessToken);
@@ -32,6 +31,8 @@ class AuthService {
   }
 
   async logout(): Promise<void> {
+    await apiClient.post(`${this.BASE_URL}/logout`);
+
     if (typeof window !== "undefined") {
       localStorage.removeItem("auth_token");
     }

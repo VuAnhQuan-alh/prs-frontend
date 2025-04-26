@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import {
   sessionService,
   tableService,
@@ -189,7 +188,7 @@ export default function SessionsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <Group justify="space-between" mb="lg">
         <Title order={1}>Sessions</Title>
         <Button leftSection={<IconPlus size="1rem" />} onClick={handleCreate}>
@@ -348,6 +347,6 @@ export default function SessionsPage() {
           Close
         </Button>
       </Modal>
-    </DashboardLayout>
+    </>
   );
 }

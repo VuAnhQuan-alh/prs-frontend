@@ -1,7 +1,7 @@
 import { apiClient } from "../api-client";
 import {
   CreateSessionRequest,
-  Session,
+  ISession as Session,
   SessionFilters,
   UpdateSessionRequest,
 } from "../types/sessions";
@@ -26,7 +26,7 @@ class SessionService {
   }
 
   async end(id: string): Promise<Session> {
-    return await apiClient.patch<Session>(`${this.BASE_URL}/${id}/end`, {});
+    return await apiClient.put<Session>(`${this.BASE_URL}/${id}/end`, {});
   }
 
   async getActiveSession(): Promise<Session | null> {

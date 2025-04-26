@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { promptService, tableService } from "@/lib/api/services";
 import {
   Prompt,
@@ -235,9 +234,9 @@ export default function PromptsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <Group justify="space-between" mb="lg">
-        <Title order={1}>Prompts</Title>
+        <Title order={2}>Prompts</Title>
         <Button leftSection={<IconPlus size="1rem" />} onClick={handleCreate}>
           Create Prompt
         </Button>
@@ -410,6 +409,6 @@ export default function PromptsPage() {
           Close
         </Button>
       </Modal> */}
-    </DashboardLayout>
+    </>
   );
 }

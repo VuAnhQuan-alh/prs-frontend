@@ -23,12 +23,13 @@ import {
   IconUsers,
   IconTable,
   IconMessageDots,
-  // IconClipboardText,
   IconBell,
-  // IconSettings,
   IconLogout,
-  IconFileReport,
+  // IconFileReport,
 } from "@tabler/icons-react";
+import { Role } from "@/lib/api/types/auth";
+import { useAccessControl } from "@/contexts/AccessControlContext";
+import { authService } from "@/lib/api/services";
 
 interface NavLinkProps {
   icon: React.ReactNode;
@@ -76,44 +77,57 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const [opened, setOpened] = useState(false);
-  const pathname = usePathname();
-
-  const navLinks = [
+// Navigation items based on user role
+const getNavigationItems = (role?: Role) => {
+  if (!role) return [];
+  const items = [
     {
       icon: <IconDashboard size="1.2rem" />,
       label: "Dashboard",
       href: "/dashboard",
+      roles: [Role.ADMIN],
     },
-    { icon: <IconUsers size="1.2rem" />, label: "Users", href: "/users" },
-    { icon: <IconTable size="1.2rem" />, label: "Tables", href: "/tables" },
-    // {
-    //   icon: <IconClipboardText size="1.2rem" />,
-    //   label: "Sessions",
-    //   href: "/sessions",
-    // },
+    {
+      icon: <IconUsers size="1.2rem" />,
+      label: "Users",
+      href: "/users",
+      roles: [Role.ADMIN, Role.STAFF],
+    },
+    {
+      icon: <IconTable size="1.2rem" />,
+      label: "Tables",
+      href: "/tables",
+      roles: [Role.ADMIN, Role.MANAGER],
+    },
     {
       icon: <IconMessageDots size="1.2rem" />,
       label: "Prompts",
       href: "/prompts",
+      roles: [Role.ADMIN, Role.MANAGER],
     },
     {
       icon: <IconBell size="1.2rem" />,
       label: "Service Requests",
       href: "/service-requests",
-    },
-    {
-      icon: <IconFileReport size="1.2rem" />,
-      label: "Reports",
-      href: "/reports",
+      roles: [Role.ADMIN, Role.STAFF, Role.MANAGER],
     },
     // {
-    //   icon: <IconSettings size="1.2rem" />,
-    //   label: "Settings",
-    //   href: "/settings",
+    //   icon: <IconFileReport size="1.2rem" />,
+    //   label: "Reports",
+    //   href: "/reports",
+    //   roles: [Role.ADMIN],
     // },
   ];
+
+  return items.filter((item) => item.roles.includes(role));
+};
+
+export function DashboardLayout({ children }: DashboardLayoutProps) {
+  const [opened, setOpened] = useState(false);
+  const pathname = usePathname();
+
+  const { currentUser: user, setupUser } = useAccessControl();
+  const navLinks = getNavigationItems(user?.role); // Replace with actual user role
 
   return (
     <AppShell
@@ -174,6 +188,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               color="gray"
               component={Link}
               href="/auth/login"
+              onClick={async (e) => {
+                e.stopPropagation();
+                await authService.logout();
+                setupUser(null);
+              }}
             >
               Logout
             </Button>

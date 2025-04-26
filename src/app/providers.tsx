@@ -4,6 +4,7 @@ import { MantineProvider, createTheme } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { ModalsProvider } from "@mantine/modals";
 import { useState, useEffect, ReactNode } from "react";
+import { AccessControlProvider } from "@/contexts/AccessControlContext";
 
 // Define your custom theme
 const theme = createTheme({
@@ -51,6 +52,7 @@ export function Providers({ children }: { children: ReactNode }) {
   }, []);
 
   // Toggle color scheme function
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const toggleColorScheme = () => {
     const newScheme = colorScheme === "dark" ? "light" : "dark";
     setColorScheme(newScheme);
@@ -60,7 +62,9 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <MantineProvider theme={theme} defaultColorScheme={colorScheme}>
       <Notifications position="top-right" zIndex={1000} />
-      <ModalsProvider>{children}</ModalsProvider>
+      <ModalsProvider>
+        <AccessControlProvider>{children}</AccessControlProvider>
+      </ModalsProvider>
     </MantineProvider>
   );
 }

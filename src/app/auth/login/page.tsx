@@ -15,6 +15,7 @@ import { notifications } from "@mantine/notifications";
 import { useRouter } from "next/navigation";
 import { authService } from "@/lib/api/services";
 import Link from "next/link";
+import { Role } from "@/lib/api/types/auth";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -22,8 +23,8 @@ export default function LoginPage() {
 
   const form = useForm({
     initialValues: {
-      email: "user@example.com",
-      password: "password123",
+      email: "john@admin.prs",
+      password: "admin123",
     },
     validate: {
       email: (value) => (!value ? "Email is required" : null),
@@ -34,13 +35,21 @@ export default function LoginPage() {
   const handleSubmit = async (values: { email: string; password: string }) => {
     try {
       setLoading(true);
-      await authService.login(values);
+      const auth = await authService.login(values);
       notifications.show({
         title: "Login successful",
         message: "You have been logged in successfully.",
         color: "green",
       });
-      router.push("/dashboard");
+      if (auth.user.role === Role.USER) {
+        router.push("/user-dashboard");
+      } else if (auth.user.role === Role.ADMIN) {
+        router.push("/dashboard");
+      } else if (auth.user.role === Role.MANAGER) {
+        router.push("/tables");
+      } else if (auth.user.role === Role.STAFF) {
+        router.push("/users");
+      }
     } catch (error: unknown) {
       console.error("Login error:", error);
       const errorMessage =

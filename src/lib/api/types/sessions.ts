@@ -1,12 +1,13 @@
 import { Seat } from "./tables";
 import { AuthUser } from "./auth";
 
-export interface Session {
+export interface ISession {
   id: string;
+  name: string | null;
   startTime: string;
   endTime?: string;
   status: SessionStatus;
-  userId: string;
+  userId?: string;
   seatId: string;
   createdAt: string;
   updatedAt: string;
@@ -22,8 +23,9 @@ export enum SessionStatus {
 }
 
 export interface CreateSessionRequest {
+  name?: string;
   seatId: string;
-  userId: string;
+  userId?: string;
 }
 
 export interface UpdateSessionRequest {

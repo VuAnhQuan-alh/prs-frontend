@@ -31,7 +31,6 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { format } from "date-fns";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import {
   User,
   UpdateUserRequest,
@@ -239,7 +238,7 @@ export default function UsersPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <Group justify="space-between" align="center" mb="lg">
         <Title order={2}>Users Management</Title>
         <Button
@@ -308,10 +307,8 @@ export default function UsersPage() {
             <Table.Tbody>
               {filteredUsers.length === 0 ? (
                 <Table.Tr>
-                  <Table.Td colSpan={5}>
-                    <Text style={{ textAlign: "center" }} c="dimmed" py="md">
-                      No users found
-                    </Text>
+                  <Table.Td colSpan={6} align="center">
+                    No users found
                   </Table.Td>
                 </Table.Tr>
               ) : (
@@ -493,6 +490,6 @@ export default function UsersPage() {
           </Button>
         </Group>
       </Modal>
-    </DashboardLayout>
+    </>
   );
 }

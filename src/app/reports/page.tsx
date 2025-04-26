@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import {
   responseService,
   sessionService,
@@ -135,7 +134,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <Group justify="space-between" mb="lg">
         <Title order={1}>Reports & Analytics</Title>
         <DatePickerInput
@@ -374,6 +373,6 @@ export default function ReportsPage() {
           <Text>No session activity data available</Text>
         )}
       </Card>
-    </DashboardLayout>
+    </>
   );
 }
