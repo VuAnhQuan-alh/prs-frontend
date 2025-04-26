@@ -187,7 +187,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               variant="light"
               color="gray"
               component={Link}
-              href="/auth/login"
+              href="/auth/register"
               onClick={async (e) => {
                 e.stopPropagation();
                 await authService.logout();

@@ -16,7 +16,7 @@ export default function Home() {
   }, [router]);
 
   const handleGetStarted = () => {
-    router.push("/auth/login");
+    router.push("/auth/register");
   };
 
   return (

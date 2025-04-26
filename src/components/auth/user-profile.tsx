@@ -119,7 +119,7 @@ export function UserProfile({
   const handleLogout = async () => {
     try {
       await authService.logout();
-      router.push("/auth/login");
+      router.push("/auth/register");
     } catch (error) {
       console.error("Logout failed:", error);
     }

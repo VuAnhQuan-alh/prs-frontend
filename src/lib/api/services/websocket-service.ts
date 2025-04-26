@@ -1,8 +1,6 @@
 "use client";
 
 import { NotificationType } from "../types/notifications";
-import { PromptType } from "../types/prompts";
-import { ServiceRequestType } from "../types/service-requests";
 import { showNotification } from "@mantine/notifications";
 import { useEffect, useRef, useState } from "react";
 
@@ -14,7 +12,7 @@ export interface WebSocketMessage {
     | "SERVICE_REQUEST"
     | "NOTIFICATION"
     | "SESSION_UPDATE";
-  payload: any;
+  payload: unknown;
 }
 
 // Custom hook for using WebSocket
@@ -59,7 +57,11 @@ export function useWebSocket() {
             priority,
             message: notificationMessage,
             type,
-          } = message.payload;
+          } = message.payload as {
+            priority: "HIGH" | "MEDIUM" | "LOW";
+            message: string;
+            type: NotificationType;
+          };
 
           let color = "blue";
           if (priority === "HIGH") color = "red";
@@ -147,6 +149,7 @@ export function useWebSocket() {
     return () => {
       disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

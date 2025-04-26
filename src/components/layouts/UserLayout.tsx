@@ -22,6 +22,7 @@ import {
 } from "@tabler/icons-react";
 import { authService } from "@/lib/api/services";
 import { AuthUser } from "@/lib/api/types/auth";
+import { useAccessControl } from "@/contexts/AccessControlContext";
 
 interface UserLayoutProps {
   children: ReactNode;
@@ -50,11 +51,12 @@ const navigationItems = [
 export default function UserLayout({ children, user }: UserLayoutProps) {
   const [opened, { toggle }] = useDisclosure();
   const pathname = usePathname();
+  const { setupUser } = useAccessControl();
 
   const handleLogout = async () => {
     try {
       await authService.logout();
-      window.location.href = "/auth/login";
+      setupUser(null);
     } catch (error) {
       console.error("Logout failed:", error);
     }

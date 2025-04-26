@@ -6,3 +6,4 @@ export * from "./user-service";
 export * from "./prompt-service";
 export * from "./response-service";
 export * from "./auth-service";
+export * from "./notification-service";

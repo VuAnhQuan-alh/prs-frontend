@@ -29,8 +29,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       const isAuth = authService.isAuthenticated();
 
       if (!isAuth) {
-        // Redirect to login if not authenticated
-        router.push("/auth/login");
+        // Redirect to register if not authenticated
+        router.push("/auth/register");
       } else {
         try {
           // Verify that token is valid by fetching current user
@@ -45,9 +45,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
           }
         } catch (error) {
           console.log("Token verification failed:", error);
-          // Token is invalid, clear it and redirect to login
+          // Token is invalid, clear it and redirect to register
           authService.logout();
-          router.push("/auth/login");
+          router.push("/auth/register");
         }
       }
 

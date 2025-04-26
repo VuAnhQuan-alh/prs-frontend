@@ -59,8 +59,8 @@ export function AccessControlProvider({ children }: { children: ReactNode }) {
   };
 
   const getDefaultPathForRole = (role: Role | undefined): string => {
-    if (!role) return "/auth/login";
-    return roleDefaultPaths[role] || "/auth/login";
+    if (!role) return "/auth/register";
+    return roleDefaultPaths[role] || "/auth/register";
   };
 
   const setupUser = (user: AuthUser | null) => {

@@ -1,4 +1,4 @@
-import { Session } from "./sessions";
+import { ISession as Session } from "./sessions";
 import { Seat } from "./tables";
 import { AuthUser } from "./auth";
 

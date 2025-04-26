@@ -96,9 +96,9 @@ export default function LoginPage() {
         </form>
 
         <Text c="dimmed" size="sm" ta="center" mt="md">
-          Don&apos;t have an account?{" "}
+          Login with more rule?{" "}
           <Link href="/auth/register" className="text-blue-500 hover:underline">
-            Register
+            Choose another role
           </Link>
         </Text>
       </Paper>

@@ -15,10 +15,16 @@ import {
 import { IconBell, IconRefresh, IconLogout } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { useRouter } from "next/navigation";
-import { sessionService } from "@/lib/api/services";
+import {
+  responseService,
+  serviceRequestService,
+  sessionService,
+  tableService,
+} from "@/lib/api/services";
 import { ISession } from "@/lib/api/types/sessions";
 import { Seat, Table } from "@/lib/api/types/tables";
 import { Prompt, PromptStatusEnum } from "@/lib/api/types/prompts";
+import { ServiceRequestType } from "@/lib/api/types/service-requests";
 
 type ResponseOption = "YES" | "NO" | "SERVICE";
 
@@ -50,6 +56,7 @@ export default function UserPlayerPage({
     if (sessionId) {
       fetchCurrentSession(sessionId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   // Fetch the current session
@@ -57,6 +64,15 @@ export default function UserPlayerPage({
     try {
       setLoading(true);
       const data = await sessionService.getById(id);
+      if (data.endTime) {
+        notifications.show({
+          title: "Session Ended",
+          message: "This session has already ended.",
+          color: "red",
+        });
+        router.push("/auth/player");
+        return;
+      }
       setSessions(data as ISessionPlayer);
 
       // console.log("Fetched session data:", data);
@@ -67,6 +83,8 @@ export default function UserPlayerPage({
         message: "Failed to load sessions. Please try again.",
         color: "red",
       });
+      router.push("/auth/player");
+      return;
     } finally {
       setLoading(false);
     }
@@ -76,15 +94,17 @@ export default function UserPlayerPage({
   const fetchCurrentPrompt = async () => {
     try {
       if (!sessions?.seat?.table.id) return;
+      setLoading(true);
+      const table = await tableService.getById(sessions.seat.table.id);
 
       // In a real implementation, we would fetch prompts for this table using an API call
       // For now, we'll simulate with mock data
       const mockPrompt = {
-        id: "prompt-123",
-        title: "Would you like to see the dessert menu?",
-        content: "LoremA",
-        status: PromptStatusEnum.PROCESSED,
-        tableId: sessions?.seat?.table.id,
+        id: table.prompt?.id || "mock-prompt-id",
+        title: table.prompt?.title || "Would you like to see the dessert menu?",
+        content: "",
+        status: table.prompt?.status || PromptStatusEnum.PROCESSED,
+        tableId: table.id,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -99,6 +119,8 @@ export default function UserPlayerPage({
         message: "Failed to load prompts. Please try again.",
         color: "red",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -123,13 +145,14 @@ export default function UserPlayerPage({
       if (response === "SERVICE") {
         // Create a service request - in real implementation, call the API
         // For now, just simulate success
-        // await serviceRequestService.create({
-        //   description: 'Service request from seat ' + user.seatCode,
-        //   type: ServiceRequestType.ASSISTANCE,
-        //   seatId: user.seatCode,
-        //   tableId: user.tableNumber,
-        //   status: 'PENDING',
-        // });
+        await serviceRequestService.create({
+          description:
+            "Service request from seat " +
+            (sessions.name || sessions.user?.name),
+          type: ServiceRequestType.ASSISTANCE,
+          seatId: sessions.seatId,
+          sessionId: sessions.id,
+        });
 
         notifications.show({
           title: "Service Request Submitted",
@@ -139,12 +162,12 @@ export default function UserPlayerPage({
       } else {
         // Record the yes/no response - in real implementation, call the API
         // For now, just simulate success
-        // await serviceResponseService.create({
-        //   promptId: currentPrompt.id,
-        //   seatId: user.seatCode,
-        //   content: response,
-        //   tableId: user.tableNumber,
-        // });
+        await responseService.create({
+          promptId: currentPrompt.id,
+          seatId: sessions.seatId,
+          content: response,
+          sessionId: sessions.id,
+        });
 
         setHasResponded(true);
 
@@ -315,7 +338,7 @@ export default function UserPlayerPage({
             }}
           >
             {currentPrompt ? (
-              <Text>{currentPrompt.title}</Text>
+              <Title order={3}>{currentPrompt.title}</Title>
             ) : (
               <Text fs="italic" c="dimmed">
                 Waiting for prompt...
@@ -323,7 +346,7 @@ export default function UserPlayerPage({
             )}
           </div>
 
-          <Flex gap="md" justify="center" mt="xl" mb="md">
+          <Flex gap="md" justify="center" my="md">
             <Button
               size="xl"
               radius="xl"
@@ -332,8 +355,8 @@ export default function UserPlayerPage({
               onClick={() => handleResponse("YES")}
               disabled={!currentPrompt || hasResponded}
               style={{
-                width: "80px",
-                height: "80px",
+                width: "100px",
+                height: "100px",
                 borderRadius: "50%",
                 fontSize: "1.2rem",
               }}
@@ -349,8 +372,8 @@ export default function UserPlayerPage({
               onClick={() => handleResponse("NO")}
               disabled={!currentPrompt || hasResponded}
               style={{
-                width: "80px",
-                height: "80px",
+                width: "100px",
+                height: "100px",
                 borderRadius: "50%",
                 fontSize: "1.2rem",
               }}
@@ -366,8 +389,8 @@ export default function UserPlayerPage({
               onClick={() => handleResponse("SERVICE")}
               disabled={!currentPrompt}
               style={{
-                width: "80px",
-                height: "80px",
+                width: "100px",
+                height: "100px",
                 borderRadius: "50%",
                 fontSize: "1.2rem",
               }}

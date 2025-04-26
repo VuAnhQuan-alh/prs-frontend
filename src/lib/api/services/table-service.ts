@@ -1,4 +1,5 @@
 import { apiClient } from "../api-client";
+import { Prompt } from "../types/prompts";
 import {
   CreateTableRequest,
   Table,
@@ -14,8 +15,10 @@ class TableService {
     return await apiClient.get<Table[]>(this.BASE_URL, { params: filters });
   }
 
-  async getById(id: string): Promise<Table> {
-    return await apiClient.get<Table>(`${this.BASE_URL}/${id}`);
+  async getById(id: string): Promise<Table & { prompt: Prompt | null }> {
+    return await apiClient.get<Table & { prompt: Prompt | null }>(
+      `${this.BASE_URL}/${id}`
+    );
   }
 
   async create(data: CreateTableRequest): Promise<Table> {

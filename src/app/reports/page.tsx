@@ -1,29 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  responseService,
-  sessionService,
-  serviceRequestService,
-} from "@/lib/api/services";
-import { Response, ResponseStats } from "@/lib/api/types/responses";
+import { responseService, serviceRequestService } from "@/lib/api/services";
+import { ResponseStats } from "@/lib/api/types/responses";
 import { ServiceRequestStatus } from "@/lib/api/types/service-requests";
 import {
   Title,
-  Grid,
   Card,
   Text,
   RingProgress,
   Group,
   Stack,
-  Select,
-  Button,
   Divider,
   Paper,
   SimpleGrid,
   Box,
 } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { DatePickerInput } from "@mantine/dates";
 
@@ -47,6 +39,7 @@ export default function ReportsPage() {
   // Fetch stats on component mount
   useEffect(() => {
     fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange]);
 
   // Function to fetch stats from API
@@ -55,7 +48,10 @@ export default function ReportsPage() {
       setLoading(true);
 
       // Set up date filters if available
-      const filters: any = {};
+      const filters: {
+        timestampFrom?: string;
+        timestampTo?: string;
+      } = {};
       if (dateRange[0] && dateRange[1]) {
         filters.timestampFrom = dateRange[0].toISOString();
         filters.timestampTo = dateRange[1].toISOString();
@@ -101,10 +97,15 @@ export default function ReportsPage() {
           resolvedRequests.length +
           cancelledRequests.length,
       });
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Error fetching statistics: ", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "An unknown error occurred while fetching statistics.";
       notifications.show({
         title: "Error",
-        message: error.message || "Failed to load statistics",
+        message: errorMessage,
         color: "red",
       });
     } finally {
