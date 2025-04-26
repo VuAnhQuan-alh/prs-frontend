@@ -14,7 +14,8 @@ export interface WebSocketMessage {
     | "SERVICE_REQUEST"
     | "NOTIFICATION"
     | "SESSION_UPDATE"
-    | "PROMPT_UPDATED";
+    | "PROMPT_UPDATED"
+    | "SEAT_UPDATE"; // Add new message type for seat updates
   payload: unknown;
 }
 
@@ -22,6 +23,17 @@ export interface WebSocketMessage {
 export interface PromptUpdatedPayload {
   tableId: string;
   prompt: Prompt | null;
+  message: string;
+}
+
+// Define seat update payload type
+export interface SeatUpdatePayload {
+  seatId: string;
+  tableId: string;
+  status: string;
+  userId?: string | null;
+  userName?: string | null;
+  type: "JOINED" | "LEFT";
   message: string;
 }
 
@@ -54,6 +66,12 @@ export function useWebSocket() {
         reconnectionDelay: 5000,
         transports: ["websocket"],
       });
+
+      // Store socket in window object so it can be accessed from other components
+      if (typeof window !== "undefined") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).socket = socket;
+      }
 
       socket.on("connect", () => {
         setIsConnected(true);
@@ -94,6 +112,49 @@ export function useWebSocket() {
           title: "Session Ended",
           message: data.message || "Your session has ended",
           color: "blue",
+        });
+      });
+
+      // Add handlers for seat status updates
+      socket.on("playerJoined", (data) => {
+        console.log("Received playerJoined event:", data);
+        const message: WebSocketMessage = {
+          type: "SEAT_UPDATE",
+          payload: {
+            type: "JOINED",
+            ...data,
+          },
+        };
+        setLastMessage(message);
+
+        // Show notification for player joined
+        showNotification({
+          title: "Player Joined",
+          message:
+            data.message ||
+            `A player has joined table ${data.tableName || data.tableId}`,
+          color: "green",
+        });
+      });
+
+      socket.on("playerLeft", (data) => {
+        console.log("Received playerLeft event:", data);
+        const message: WebSocketMessage = {
+          type: "SEAT_UPDATE",
+          payload: {
+            type: "LEFT",
+            ...data,
+          },
+        };
+        setLastMessage(message);
+
+        // Show notification for player left
+        showNotification({
+          title: "Player Left",
+          message:
+            data.message ||
+            `A player has left table ${data.tableName || data.tableId}`,
+          color: "orange",
         });
       });
 

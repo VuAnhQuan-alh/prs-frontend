@@ -69,6 +69,7 @@ import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { userService } from "@/lib/api/services/user-service";
 import { Role } from "@/lib/api/types/auth";
+import { useWebSocket } from "@/lib/api/services/websocket-service";
 
 interface Manager {
   id: string;
@@ -122,6 +123,45 @@ export default function TablesPage() {
     },
   });
 
+  // WebSocket hook
+  const { lastMessage, isConnected } = useWebSocket();
+
+  // Subscribe to staff WebSocket channel when component mounts
+  useEffect(() => {
+    if (isConnected) {
+      // Subscribe to all session updates as a staff member
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const socket = (window as any).socket;
+      if (socket) {
+        socket.emit("subscribeToAllSessions");
+        console.log("Subscribed to all sessions as staff");
+      }
+    }
+  }, [isConnected]);
+
+  // Listen for WebSocket seat status updates
+  useEffect(() => {
+    if (lastMessage?.type === "SEAT_UPDATE") {
+      const payload = lastMessage.payload as {
+        seatId: string;
+        tableId: string;
+        userName: string;
+        type: "JOINED" | "LEFT";
+      };
+
+      console.log("Received seat update:", payload);
+
+      // If the update is for the currently selected table, refresh the seat data
+      if (selectedTable && selectedTable.id === payload.tableId) {
+        fetchTableDetails(selectedTable.id);
+      }
+
+      // Refresh the tables list to update the status indicators
+      fetchTables();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastMessage]);
+
   // current prompt selected
   const currentPrompt = useMemo(() => {
     if (selectedTable && tablePrompts.length) {
@@ -136,8 +176,10 @@ export default function TablesPage() {
   useEffect(() => {
     fetchTables();
     fetchManagers();
+    // Connect to WebSocket if not already connected
+    // connectWebSocket();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showArchived]);
+  }, []);
 
   // Fetch prompts on detail
   useEffect(() => {
@@ -534,6 +576,9 @@ export default function TablesPage() {
   const handleRefresh = () => {
     fetchTables();
     fetchManagers();
+    if (selectedTable) {
+      fetchTableDetails(selectedTable.id);
+    }
   };
 
   // Render seat status badge
