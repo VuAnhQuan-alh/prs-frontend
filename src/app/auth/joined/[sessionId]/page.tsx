@@ -1,30 +1,32 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
-import {
-  Button,
-  Card,
-  Text,
-  Group,
-  Title,
-  Container,
-  Paper,
-  Flex,
-  Divider,
-} from "@mantine/core";
-import { IconBell, IconRefresh, IconLogout } from "@tabler/icons-react";
-import { notifications } from "@mantine/notifications";
 import { useRouter } from "next/navigation";
+import { use, useEffect, useState } from "react";
+
 import {
   responseService,
   serviceRequestService,
   sessionService,
   tableService,
 } from "@/lib/api/services";
+import { useWebSocket } from "@/lib/api/services/websocket-service";
+import { Prompt } from "@/lib/api/types/prompts";
+import { ServiceRequestType } from "@/lib/api/types/service-requests";
 import { ISession } from "@/lib/api/types/sessions";
 import { Seat, Table } from "@/lib/api/types/tables";
-import { Prompt, PromptStatusEnum } from "@/lib/api/types/prompts";
-import { ServiceRequestType } from "@/lib/api/types/service-requests";
+import {
+  Button,
+  Card,
+  Container,
+  Divider,
+  Flex,
+  Group,
+  Paper,
+  Text,
+  Title,
+} from "@mantine/core";
+import { notifications } from "@mantine/notifications";
+import { IconBell, IconLogout, IconRefresh } from "@tabler/icons-react";
 
 type ResponseOption = "YES" | "NO" | "SERVICE";
 
@@ -39,31 +41,98 @@ export default function UserPlayerPage({
 }) {
   const sessionId = use(params).sessionId;
   const router = useRouter();
-
-  // User and Session states
-  const [sessions, setSessions] = useState<ISessionPlayer | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessions, setSessions] = useState<ISessionPlayer | null>(null);
   const [currentPrompt, setCurrentPrompt] = useState<Prompt | null>(null);
-
   const [selectedResponse, setSelectedResponse] =
     useState<ResponseOption | null>(null);
   const [hasResponded, setHasResponded] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<
-    "connected" | "connecting" | "disconnected"
+    "disconnected" | "connecting" | "connected"
   >("connecting");
 
+  // WebSocket hook
+  const {
+    isConnected,
+    lastMessage,
+    // connect: connectWebSocket,
+    connectPromptSocket,
+    promptSocketConnected,
+  } = useWebSocket();
+
+  // Fetch session data when component mounts
   useEffect(() => {
-    if (sessionId) {
-      fetchCurrentSession(sessionId);
-    }
+    fetchSessionData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
-  // Fetch the current session
-  const fetchCurrentSession = async (id: string) => {
+  // Listen for prompt updates from WebSocket
+  useEffect(() => {
+    if (!sessions?.seat?.table?.id) return;
+    console.log("Listening for prompt updates...");
+
+    if (lastMessage && lastMessage.type === "PROMPT_UPDATED") {
+      // Handle prompt update
+      const payload = lastMessage.payload as {
+        tableId: string;
+        prompt: Prompt | null;
+      };
+
+      // Only update if this update is for our table
+      if (sessions.seat.table.id === payload.tableId) {
+        // Reset player response state
+        setSelectedResponse(null);
+        setHasResponded(false);
+
+        // Update current prompt
+        if (payload.prompt) {
+          setCurrentPrompt(payload.prompt);
+
+          // Show notification to player about new prompt
+          notifications.show({
+            title: "New Prompt Available",
+            message:
+              "A new prompt has been assigned to your table. Please respond to it.",
+            color: "blue",
+          });
+        } else {
+          // Handle case where prompt was deleted/removed
+          setCurrentPrompt(null);
+          notifications.show({
+            title: "Prompt Removed",
+            message: "The current prompt has been removed.",
+            color: "blue",
+          });
+        }
+      }
+    }
+
+    // Update connection status based on WebSocket state
+    if (isConnected && promptSocketConnected) {
+      setRealtimeStatus("connected");
+    } else if (!isConnected || !promptSocketConnected) {
+      setRealtimeStatus("connecting");
+    }
+  }, [
+    lastMessage,
+    isConnected,
+    promptSocketConnected,
+    sessions?.seat?.table?.id,
+  ]);
+
+  // Connect to prompt WebSocket for the table when session data is loaded
+  useEffect(() => {
+    if (sessions?.seat?.table?.id) {
+      connectPromptSocket(sessions.seat.table.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessions?.seat?.table?.id]);
+
+  // Function to fetch session data
+  const fetchSessionData = async () => {
     try {
       setLoading(true);
-      const data = await sessionService.getById(id);
+      const data = await sessionService.getById(sessionId);
       if (data.endTime) {
         notifications.show({
           title: "Session Ended",
@@ -97,21 +166,14 @@ export default function UserPlayerPage({
       setLoading(true);
       const table = await tableService.getById(sessions.seat.table.id);
 
-      // In a real implementation, we would fetch prompts for this table using an API call
-      // For now, we'll simulate with mock data
-      const mockPrompt = {
-        id: table.prompt?.id || "mock-prompt-id",
-        title: table.prompt?.title || "Would you like to see the dessert menu?",
-        content: "",
-        status: table.prompt?.status || PromptStatusEnum.PROCESSED,
-        tableId: table.id,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      setCurrentPrompt(mockPrompt);
-      setSelectedResponse(null);
-      setHasResponded(false);
+      if (table.prompt) {
+        setCurrentPrompt(table.prompt);
+        setSelectedResponse(null);
+        setHasResponded(false);
+      } else {
+        // If no prompt is set for the table, use a mock or placeholder
+        setCurrentPrompt(null);
+      }
     } catch (error) {
       console.error("Failed to fetch prompts:", error);
       notifications.show({
@@ -226,7 +288,7 @@ export default function UserPlayerPage({
             <div>
               <Title order={4}>PRS Player Interface</Title>
               <Text size="sm" c="dimmed">
-                Table {sessions?.seat.table?.name}, Seat $
+                Table {sessions?.seat.table?.name}, Seat{" "}
                 {String.fromCharCode(64 + Number(sessions?.seat?.number || 0))}
               </Text>
             </div>
@@ -278,36 +340,25 @@ export default function UserPlayerPage({
                 </Text>
                 <Text size="sm" c="dimmed">
                   {realtimeStatus === "connecting"
-                    ? "Please wait while we establish a connection."
-                    : "Unable to connect to the server. Please check your internet connection."}
+                    ? "Awaiting connection to the real-time server."
+                    : "Lost connection to real-time server. Trying to reconnect..."}
                 </Text>
               </div>
             </Group>
           </Paper>
         )}
 
-        <Card shadow="sm" mb="lg" p="lg" radius="md" withBorder>
-          <Group mb="md">
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: "50%",
-                backgroundColor: "#228be6",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "white",
-                fontWeight: "bold",
-                fontSize: "1.2rem",
-              }}
-            >
-              {sessions?.name?.split("")[0] || "U"}
-            </div>
+        <Card shadow="sm" p="lg" radius="md" mb="md" withBorder>
+          <Group justify="apart" mb="md">
+            <Title order={3}>Your Session</Title>
+            <Text size="sm" c="dimmed">
+              Session #{sessionId.substring(0, 8)}
+            </Text>
+          </Group>
+
+          <Group>
             <div>
-              <Text fw={500} size="lg">
-                Welcome, {sessions?.name}
-              </Text>
+              <Text fw={500}>{sessions?.user?.name || sessions?.name}</Text>
               <Text size="sm" c="dimmed">
                 You are seated at Table {sessions?.seat.table?.name}, Seat{" "}
                 {String.fromCharCode(64 + Number(sessions?.seat?.number || 0))}
@@ -338,7 +389,7 @@ export default function UserPlayerPage({
             }}
           >
             {currentPrompt ? (
-              <Title order={3}>{currentPrompt.title}</Title>
+              <Title order={2}>{currentPrompt.title}</Title>
             ) : (
               <Text fs="italic" c="dimmed">
                 Waiting for prompt...
@@ -399,11 +450,15 @@ export default function UserPlayerPage({
             </Button>
           </Flex>
 
-          {selectedResponse && (
-            <Text ta="center" mt="md" size="sm" c="dimmed">
-              {selectedResponse === "SERVICE"
-                ? "Service request sent!"
-                : "Thank you for your response!"}
+          {hasResponded && (
+            <Text
+              ta="center"
+              fs="italic"
+              c="dimmed"
+              mt="md"
+              style={{ opacity: 0.7 }}
+            >
+              Thank you for your response! Please wait for the next prompt.
             </Text>
           )}
         </Card>
