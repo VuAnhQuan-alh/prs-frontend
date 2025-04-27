@@ -27,7 +27,6 @@ import {
   IconEdit,
   IconTrash,
   IconUserCheck,
-  IconUserX,
   IconUsers,
 } from "@tabler/icons-react";
 import { format } from "date-fns";
@@ -51,8 +50,7 @@ export default function UsersPage() {
 
   const roleColors: Record<string, string> = {
     [Role.ADMIN]: "red",
-    [Role.MANAGER]: "blue",
-    [Role.STAFF]: "green",
+    [Role.TABLE]: "blue",
     [Role.USER]: "gray",
   };
 
@@ -259,25 +257,19 @@ export default function UsersPage() {
               value={Role.ADMIN}
               leftSection={<IconUserCheck size="0.8rem" />}
             >
-              Admins
+              Supper Admins
             </Tabs.Tab>
             <Tabs.Tab
-              value={Role.MANAGER}
+              value={Role.TABLE}
               leftSection={<IconUserCheck size="0.8rem" />}
             >
-              Managers
-            </Tabs.Tab>
-            <Tabs.Tab
-              value={Role.STAFF}
-              leftSection={<IconUserCheck size="0.8rem" />}
-            >
-              Staff
+              Table Admins
             </Tabs.Tab>
             <Tabs.Tab
               value={Role.USER}
-              leftSection={<IconUserX size="0.8rem" />}
+              leftSection={<IconUserCheck size="0.8rem" />}
             >
-              Users
+              User Admins
             </Tabs.Tab>
           </Tabs.List>
         </Tabs>

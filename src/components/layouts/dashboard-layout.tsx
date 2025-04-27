@@ -30,6 +30,7 @@ import {
   IconReport,
   IconTable,
 } from "../icons";
+import Image from "next/image";
 
 interface NavLinkProps {
   icon: React.ReactNode;
@@ -94,25 +95,25 @@ const getNavigationItems = (path: string, role?: Role) => {
       icon: <IconAdmin24 active={path == "/users"} />,
       label: "Users",
       href: "/users",
-      roles: [Role.ADMIN, Role.STAFF],
+      roles: [Role.ADMIN, Role.USER],
     },
     {
       icon: <IconTable active={path == "/tables"} />,
       label: "Tables",
       href: "/tables",
-      roles: [Role.ADMIN, Role.MANAGER],
+      roles: [Role.ADMIN, Role.TABLE],
     },
     {
       icon: <IconPrompt active={path == "/prompts"} />,
       label: "Prompts",
       href: "/prompts",
-      roles: [Role.ADMIN, Role.MANAGER],
+      roles: [Role.ADMIN, Role.TABLE],
     },
     {
-      icon: <IconReport active={path == "/prompts"} />,
-      label: "Service Requests",
-      href: "/service-requests",
-      roles: [Role.ADMIN, Role.STAFF, Role.MANAGER],
+      icon: <IconReport active={path == "/reports"} />,
+      label: "Reports",
+      href: "/reports",
+      roles: [Role.ADMIN, Role.USER, Role.TABLE],
     },
   ];
 
@@ -157,6 +158,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               size="sm"
               mr="sm"
             />
+            <Image
+              src="/images/logo-auth.png"
+              width="35"
+              height="42"
+              alt="logo layout"
+            />
             <Text
               size="lg"
               fw={700}
@@ -176,26 +183,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           backgroundColor: theme.white,
         }}
       >
-        <AppShell.Section mb="lg">
-          <Group h="100%" px="md" justify="space-between">
-            <Burger
-              opened={opened}
-              onClick={() => setOpened((o) => !o)}
-              hiddenFrom="sm"
-              size="sm"
-              mr="sm"
-            />
-            <Text
-              size="lg"
-              fw={700}
-              variant="gradient"
-              gradient={{ from: "blue", to: "cyan", deg: 90 }}
-            >
-              PRS Management
-            </Text>
-          </Group>
-        </AppShell.Section>
-
         <AppShell.Section grow component={ScrollArea} mx="-xs" px="xs">
           <Stack gap="xs" mb="lg">
             {navLinks.map((link) => (
@@ -244,7 +231,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               variant="light"
               radius="md"
               component={Link}
-              href="/auth/register"
+              href="/"
               onClick={async (e) => {
                 e.stopPropagation();
                 await authService.logout();

@@ -11,9 +11,8 @@ export interface Table {
 }
 
 export enum TableStatus {
-  AVAILABLE = "AVAILABLE",
-  OCCUPIED = "OCCUPIED",
-  RESERVED = "RESERVED",
+  INACTIVE = "INACTIVE",
+  ACTIVE = "ACTIVE",
   MAINTENANCE = "MAINTENANCE",
 }
 

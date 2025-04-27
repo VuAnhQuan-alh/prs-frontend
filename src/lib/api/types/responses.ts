@@ -4,7 +4,7 @@ import { Seat } from "./tables";
 
 export interface Response {
   id: string;
-  value: string;
+  type: ResponseType;
   seatId: string;
   promptId: string;
   sessionId: string;
@@ -50,4 +50,10 @@ export interface ResponseStats {
     count: number;
   }[];
   averageResponseTime: number;
+}
+
+export enum ResponseType {
+  YES = "YES_RESPONSE",
+  NO = "NO_RESPONSE",
+  SERVICE_REQUEST = "SERVICE_REQUEST",
 }

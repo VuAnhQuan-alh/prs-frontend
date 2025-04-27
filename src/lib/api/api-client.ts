@@ -78,7 +78,7 @@ class ApiClient {
 
             // Redirect to login page if client-side
             if (typeof window !== "undefined") {
-              window.location.href = "/auth/register";
+              window.location.href = "/";
             }
           }
 

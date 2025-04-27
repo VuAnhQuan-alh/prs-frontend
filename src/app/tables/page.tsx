@@ -111,7 +111,7 @@ export default function TablesPage() {
     initialValues: {
       name: "",
       capacity: 4,
-      status: TableStatus.AVAILABLE,
+      status: TableStatus.ACTIVE,
       userId: "",
       isVip: false,
       adminNotes: "",
@@ -217,7 +217,7 @@ export default function TablesPage() {
     try {
       setLoadingManagers(true);
       // Get users with manager role using the userService
-      const managers = await userService.getAll({ role: Role.MANAGER });
+      const managers = await userService.getAll({ role: Role.TABLE });
       setManagers(managers);
     } catch (error) {
       console.error("Failed to fetch managers:", error);
@@ -396,9 +396,8 @@ export default function TablesPage() {
   // Function to render table status badge
   const renderStatusBadge = (status: TableStatus) => {
     const colorMap: Record<TableStatus, string> = {
-      [TableStatus.AVAILABLE]: "gray",
-      [TableStatus.OCCUPIED]: "green",
-      [TableStatus.RESERVED]: "blue",
+      [TableStatus.ACTIVE]: "green",
+      [TableStatus.INACTIVE]: "gray",
       [TableStatus.MAINTENANCE]: "orange",
     };
 
@@ -421,8 +420,8 @@ export default function TablesPage() {
     try {
       // Set table status to AVAILABLE if a manager is assigned, otherwise leave unchanged
       const newStatus = values.userId
-        ? TableStatus.AVAILABLE
-        : values.status || TableStatus.AVAILABLE;
+        ? TableStatus.INACTIVE
+        : values.status || TableStatus.INACTIVE;
 
       if (selectedTable) {
         // Update existing table
@@ -539,7 +538,7 @@ export default function TablesPage() {
     try {
       const newStatus =
         table.status === TableStatus.MAINTENANCE
-          ? TableStatus.AVAILABLE
+          ? TableStatus.INACTIVE
           : TableStatus.MAINTENANCE;
 
       await tableService.update(table.id, {
@@ -1208,7 +1207,7 @@ export default function TablesPage() {
                               </Text>
                             </Group>
                             <Divider mb="sm" />
-                            <Text>{response.value}</Text>
+                            <Text>{response.type}</Text>
                             {response.promptId && (
                               <Badge mt="xs" variant="outline">
                                 Selected option: {response.promptId}
@@ -1284,9 +1283,8 @@ export default function TablesPage() {
                   label="Status"
                   placeholder="Select status"
                   data={[
-                    { value: TableStatus.AVAILABLE, label: "Available" },
-                    { value: TableStatus.OCCUPIED, label: "Occupied" },
-                    { value: TableStatus.RESERVED, label: "Reserved" },
+                    { value: TableStatus.INACTIVE, label: "Inactive" },
+                    { value: TableStatus.ACTIVE, label: "Active" },
                     { value: TableStatus.MAINTENANCE, label: "Maintenance" },
                   ]}
                   defaultValue={selectedTable.status}

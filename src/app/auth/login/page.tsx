@@ -42,13 +42,11 @@ export default function LoginPage() {
         message: "You have been logged in successfully.",
         color: "green",
       });
-      if (auth.user.role === Role.USER) {
-        router.push("/user-dashboard");
-      } else if (auth.user.role === Role.ADMIN) {
+      if (auth.user.role === Role.ADMIN) {
         router.push("/dashboard");
-      } else if (auth.user.role === Role.MANAGER) {
+      } else if (auth.user.role === Role.TABLE) {
         router.push("/tables");
-      } else if (auth.user.role === Role.STAFF) {
+      } else if (auth.user.role === Role.USER) {
         router.push("/users");
       }
     } catch (error: unknown) {
@@ -108,7 +106,7 @@ export default function LoginPage() {
 
         <Text c="dimmed" size="sm" ta="center" mt="md">
           Login with more rule?{" "}
-          <Link href="/auth/register" className="text-blue-500 hover:underline">
+          <Link href="/" className="text-blue-500 hover:underline">
             Choose another role
           </Link>
         </Text>

@@ -13,17 +13,15 @@ const rolePermissions = {
     "/service-requests",
     "/reports",
   ],
-  [Role.MANAGER]: ["/tables", "/prompts", "/service-requests"],
-  [Role.STAFF]: ["/users", "/service-requests"],
-  [Role.USER]: ["/user-dashboard"],
+  [Role.TABLE]: ["/tables", "/prompts", "/service-requests", "/reports"],
+  [Role.USER]: ["/users", "/service-requests", "/reports"],
 };
 
 // Path that roles will be redirected to if they try to access an unauthorized route
 const roleDefaultPaths = {
   [Role.ADMIN]: "/dashboard",
-  [Role.MANAGER]: "/dashboard",
-  [Role.STAFF]: "/dashboard",
-  [Role.USER]: "/user-dashboard",
+  [Role.TABLE]: "/tables",
+  [Role.USER]: "/users",
 };
 
 interface AccessControlContextType {
@@ -59,8 +57,8 @@ export function AccessControlProvider({ children }: { children: ReactNode }) {
   };
 
   const getDefaultPathForRole = (role: Role | undefined): string => {
-    if (!role) return "/auth/register";
-    return roleDefaultPaths[role] || "/auth/register";
+    if (!role) return "/";
+    return roleDefaultPaths[role] || "/";
   };
 
   const setupUser = (user: AuthUser | null) => {

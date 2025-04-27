@@ -204,7 +204,7 @@ export default function PlayerPage() {
 
         <Text c="dimmed" size="sm" ta="center" mt="md">
           Login with more rule?{" "}
-          <Link href="/auth/register" className="text-blue-500 hover:underline">
+          <Link href="/" className="text-blue-500 hover:underline">
             Choose another role
           </Link>
         </Text>
