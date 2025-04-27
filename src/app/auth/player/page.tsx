@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { seatService, sessionService, tableService } from "@/lib/api/services";
 import { Seat, SeatStatus, Table, TableStatus } from "@/lib/api/types/tables";
+import Image from "next/image";
 
 export default function PlayerPage() {
   const [loading, setLoading] = useState(false);
@@ -131,11 +132,21 @@ export default function PlayerPage() {
   };
 
   return (
-    <Box className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <Paper radius="md" p="xl" withBorder className="w-full max-w-md">
-        <Title ta="center" order={2} mb="lg">
-          PRS - Prompt and Response System
+    <Box className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+      <Image
+        src="/images/logo-auth.png"
+        width="84"
+        height="100"
+        alt="logo auth"
+      />
+
+      <Paper radius="md" p="xl" className="w-full max-w-md mt-10">
+        <Title ta="center" c="#228ED0" order={2} mb="sm">
+          Guest Login
         </Title>
+        <Text ta="center" c="#454C50" size="lg" fw={500} mb="xl">
+          Please sign in to continue
+        </Text>
 
         <form onSubmit={form.onSubmit(handleSubmit)} autoComplete="off">
           <TextInput

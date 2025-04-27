@@ -11,13 +11,8 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { useRouter } from "next/navigation";
-// import Link from "next/link";
-import {
-  IconUserCog,
-  IconUserShield,
-  IconTable,
-  IconUser,
-} from "@tabler/icons-react";
+import { IconAdmin, IconGuest, IconLayout, IconUser } from "@/components/icons";
+import Image from "next/image";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,13 +27,19 @@ export default function RegisterPage() {
   };
 
   return (
-    <Box className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <Paper radius="md" p="xl" withBorder className="w-full max-w-4xl">
-        <Title ta="center" order={2} mb="sm">
+    <Box className="min-h-screen flex flex-col items-center justify-center bg-[#F8FBFC] p-4">
+      <Image
+        src="/images/logo-auth.png"
+        width="84"
+        height="100"
+        alt="logo auth"
+      />
+      <Paper p="xl" className="w-full max-w-4xl bg-[#F8FBFC]!">
+        <Title ta="center" c="#228ED0" order={2} mb="sm">
           Prompt and Response System
         </Title>
 
-        <Text ta="center" c="dimmed" mb="xl">
+        <Text ta="center" c="#454C50" size="lg" fw={500} mb="xl">
           Select your role to continue
         </Text>
 
@@ -50,29 +51,24 @@ export default function RegisterPage() {
               onClick={() => handleRoleSelect("super-admin")}
             >
               <Card
-                shadow="sm"
                 padding="lg"
                 radius="md"
-                withBorder
-                className="hover:bg-gray-50 transition-colors"
+                className="hover:bg-gray-50 transition-colors border border-[#F5F5F5]"
               >
                 <Group justify="center" mb="md">
-                  <IconUserShield size={40} stroke={1.5} color="#a78bfa" />
+                  <IconAdmin active />
                 </Group>
-                <Title order={3} ta="center" mb="xs">
+                <Title order={3} ta="center" mb="xs" c="#228ED0">
                   Super Admin
                 </Title>
-                <Text ta="center" c="dimmed" mb="md">
+                <Text ta="center" c="#596063" size="sm" mb="md">
                   Full access to all system features
                 </Text>
-                <Text
-                  ta="center"
-                  size="xs"
-                  fw={500}
-                  className="bg-gray-100 py-1 px-2 rounded"
-                >
-                  Requires Authentication
-                </Text>
+                <Box className="bg-[#35AA1D1A] rounded-full border border-[#35AA1D1A] px-2 py-1 max-w-[162px] mx-auto">
+                  <Text ta="center" c="#35AA1D" size="xs" fw={500}>
+                    Requires Authentication
+                  </Text>
+                </Box>
               </Card>
             </UnstyledButton>
           </Grid.Col>
@@ -84,29 +80,24 @@ export default function RegisterPage() {
               onClick={() => handleRoleSelect("user-admin")}
             >
               <Card
-                shadow="sm"
                 padding="lg"
                 radius="md"
-                withBorder
-                className="hover:bg-gray-50 transition-colors"
+                className="hover:bg-gray-50 transition-colors border border-[#F5F5F5]"
               >
                 <Group justify="center" mb="md">
-                  <IconUserCog size={40} stroke={1.5} color="#a78bfa" />
+                  <IconUser active />
                 </Group>
-                <Title order={3} ta="center" mb="xs">
+                <Title order={3} ta="center" mb="xs" c="#228ED0">
                   User Admin
                 </Title>
-                <Text ta="center" c="dimmed" mb="md">
+                <Text ta="center" c="#596063" size="sm" mb="md">
                   Manage users and permissions
                 </Text>
-                <Text
-                  ta="center"
-                  size="xs"
-                  fw={500}
-                  className="bg-gray-100 py-1 px-2 rounded"
-                >
-                  Requires Authentication
-                </Text>
+                <Box className="bg-[#35AA1D1A] rounded-full border border-[#35AA1D1A] px-2 py-1 max-w-[162px] mx-auto">
+                  <Text ta="center" c="#35AA1D" size="xs" fw={500}>
+                    Requires Authentication
+                  </Text>
+                </Box>
               </Card>
             </UnstyledButton>
           </Grid.Col>
@@ -118,29 +109,24 @@ export default function RegisterPage() {
               onClick={() => handleRoleSelect("table-admin")}
             >
               <Card
-                shadow="sm"
                 padding="lg"
                 radius="md"
-                withBorder
-                className="hover:bg-gray-50 transition-colors"
+                className="hover:bg-gray-50 transition-colors border border-[#F5F5F5]"
               >
                 <Group justify="center" mb="md">
-                  <IconTable size={40} stroke={1.5} color="#a78bfa" />
+                  <IconLayout />
                 </Group>
-                <Title order={3} ta="center" mb="xs">
+                <Title order={3} ta="center" mb="xs" c="#228ED0">
                   Table Admin
                 </Title>
-                <Text ta="center" c="dimmed" mb="md">
+                <Text ta="center" c="#596063" size="sm" mb="md">
                   Manage tables and player interactions
                 </Text>
-                <Text
-                  ta="center"
-                  size="xs"
-                  fw={500}
-                  className="bg-gray-100 py-1 px-2 rounded"
-                >
-                  Requires Authentication
-                </Text>
+                <Box className="bg-[#35AA1D1A] rounded-full border border-[#35AA1D1A] px-2 py-1 max-w-[162px] mx-auto">
+                  <Text ta="center" c="#35AA1D" size="xs" fw={500}>
+                    Requires Authentication
+                  </Text>
+                </Box>
               </Card>
             </UnstyledButton>
           </Grid.Col>
@@ -152,38 +138,24 @@ export default function RegisterPage() {
               onClick={() => handleRoleSelect("guest-player")}
             >
               <Card
-                shadow="sm"
                 padding="lg"
                 radius="md"
-                withBorder
-                className="hover:bg-gray-50 transition-colors"
+                className="hover:bg-gray-50 transition-colors border border-[#F5F5F5]"
               >
                 <Group justify="center" mb="md">
-                  <IconUser size={40} stroke={1.5} color="#a78bfa" />
+                  <IconGuest />
                 </Group>
-                <Title order={3} ta="center" mb="xs">
+                <Title order={3} ta="center" mb="xs" c="#228ED0">
                   Guest/Player
                 </Title>
-                <Text ta="center" c="dimmed" mb="md">
+                <Text ta="center" c="#596063" size="sm" mb="md">
                   Join a table and respond to prompts
                 </Text>
-                <Text
-                  ta="center"
-                  size="xs"
-                  fw={500}
-                  className="bg-gray-100 py-1 px-2 rounded"
-                >
-                  Join as Guest
-                </Text>
+                <Box className="mx-auth h-[27px]"></Box>
               </Card>
             </UnstyledButton>
           </Grid.Col>
         </Grid>
-
-        <Text c="dimmed" size="sm" ta="center" mt="md">
-          This is a proof-of-concept demonstration of the Prompt and Response
-          System.
-        </Text>
       </Paper>
     </Box>
   );

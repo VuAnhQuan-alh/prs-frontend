@@ -1,0 +1,11 @@
+export { default as IconAdmin } from "./icon-admin";
+export { default as IconAdmin24 } from "./icon-admin24";
+export { default as IconDashboard } from "./icon-dashboard";
+export { default as IconGuest } from "./icon-guest";
+export { default as IconLayout } from "./icon-layout";
+export { default as IconLogout } from "./icon-logout";
+export { default as IconNotice } from "./icon-notice";
+export { default as IconPrompt } from "./icon-prompt";
+export { default as IconReport } from "./icon-report";
+export { default as IconTable } from "./icon-table";
+export { default as IconUser } from "./icon-user";

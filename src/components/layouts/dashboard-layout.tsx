@@ -12,24 +12,24 @@ import {
   Avatar,
   Text,
   Divider,
-  ThemeIcon,
   Box,
   ScrollArea,
   Button,
   Container,
+  useMantineTheme,
+  rem,
 } from "@mantine/core";
-import {
-  IconDashboard,
-  IconUsers,
-  IconTable,
-  IconMessageDots,
-  IconBell,
-  IconLogout,
-  // IconFileReport,
-} from "@tabler/icons-react";
+import { IconLogout } from "@tabler/icons-react";
 import { Role } from "@/lib/api/types/auth";
 import { useAccessControl } from "@/contexts/AccessControlContext";
 import { authService } from "@/lib/api/services";
+import {
+  IconAdmin24,
+  IconDashboard,
+  IconPrompt,
+  IconReport,
+  IconTable,
+} from "../icons";
 
 interface NavLinkProps {
   icon: React.ReactNode;
@@ -40,34 +40,37 @@ interface NavLinkProps {
 }
 
 function NavLink({ icon, label, href, active, onClick }: NavLinkProps) {
+  const theme = useMantineTheme();
+
   return (
     <UnstyledButton
       component={Link}
       href={href}
       onClick={onClick}
       className={active ? "active-nav-link" : "nav-link"}
-      style={(theme) => ({
+      style={{
         display: "block",
         width: "100%",
-        padding: theme.spacing.xs,
-        borderRadius: theme.radius.sm,
+        padding: `${rem(10)} ${rem(16)}`,
+        borderRadius: theme.radius.md,
         color: theme.colors.dark[9],
-        backgroundColor: active ? theme.colors.blue[0] : "transparent",
+        backgroundColor: active ? "#228ED01A" : "transparent",
         "&:hover": {
-          backgroundColor: theme.colors.gray[0],
+          backgroundColor: `rgba(${theme.colors.gray[5]}, 0.08)`,
         },
-      })}
+      }}
     >
-      <Group>
-        <ThemeIcon
-          variant={active ? "light" : "subtle"}
-          color={active ? "blue" : "gray"}
-        >
+      <Group justify="space-between" wrap="nowrap">
+        <Group gap="sm">
           {icon}
-        </ThemeIcon>
-        <Text size="sm" fw={active ? 500 : 400}>
-          {label}
-        </Text>
+          <Text
+            size="sm"
+            c={active ? "#228ED0" : "#262F33"}
+            fw={active ? 600 : 500}
+          >
+            {label}
+          </Text>
+        </Group>
       </Group>
     </UnstyledButton>
   );
@@ -78,45 +81,39 @@ interface DashboardLayoutProps {
 }
 
 // Navigation items based on user role
-const getNavigationItems = (role?: Role) => {
+const getNavigationItems = (path: string, role?: Role) => {
   if (!role) return [];
   const items = [
     {
-      icon: <IconDashboard size="1.2rem" />,
+      icon: <IconDashboard active={path == "/dashboard"} />,
       label: "Dashboard",
       href: "/dashboard",
       roles: [Role.ADMIN],
     },
     {
-      icon: <IconUsers size="1.2rem" />,
+      icon: <IconAdmin24 active={path == "/users"} />,
       label: "Users",
       href: "/users",
       roles: [Role.ADMIN, Role.STAFF],
     },
     {
-      icon: <IconTable size="1.2rem" />,
+      icon: <IconTable active={path == "/tables"} />,
       label: "Tables",
       href: "/tables",
       roles: [Role.ADMIN, Role.MANAGER],
     },
     {
-      icon: <IconMessageDots size="1.2rem" />,
+      icon: <IconPrompt active={path == "/prompts"} />,
       label: "Prompts",
       href: "/prompts",
       roles: [Role.ADMIN, Role.MANAGER],
     },
     {
-      icon: <IconBell size="1.2rem" />,
+      icon: <IconReport active={path == "/prompts"} />,
       label: "Service Requests",
       href: "/service-requests",
       roles: [Role.ADMIN, Role.STAFF, Role.MANAGER],
     },
-    // {
-    //   icon: <IconFileReport size="1.2rem" />,
-    //   label: "Reports",
-    //   href: "/reports",
-    //   roles: [Role.ADMIN],
-    // },
   ];
 
   return items.filter((item) => item.roles.includes(role));
@@ -125,21 +122,32 @@ const getNavigationItems = (role?: Role) => {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [opened, setOpened] = useState(false);
   const pathname = usePathname();
+  const theme = useMantineTheme();
 
   const { currentUser: user, setupUser } = useAccessControl();
-  const navLinks = getNavigationItems(user?.role); // Replace with actual user role
+  const navLinks = getNavigationItems(pathname, user?.role);
 
   return (
     <AppShell
-      header={{ height: 60 }}
+      header={{ height: 70 }}
       navbar={{
-        width: 300,
+        width: 280,
         breakpoint: "sm",
         collapsed: { mobile: !opened },
       }}
       padding="md"
+      styles={{
+        main: {
+          background: theme.colors.gray[0],
+        },
+      }}
     >
-      <AppShell.Header>
+      <AppShell.Header
+        style={{
+          borderBottom: `1px solid rgba(${theme.colors.gray[5]}, 0.3)`,
+          backgroundColor: theme.white,
+        }}
+      >
         <Group h="100%" px="md" justify="space-between">
           <Group>
             <Burger
@@ -147,25 +155,49 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               onClick={() => setOpened((o) => !o)}
               hiddenFrom="sm"
               size="sm"
+              mr="sm"
             />
-            <Text size="lg" fw={700}>
+            <Text
+              size="lg"
+              fw={700}
+              variant="gradient"
+              gradient={{ from: "blue", to: "cyan", deg: 90 }}
+            >
               PRS Management
             </Text>
-          </Group>
-          <Group>
-            <Text size="sm" c="dimmed">
-              Staff-1234
-            </Text>
-            <Avatar color="blue" radius="xl">
-              JD
-            </Avatar>
           </Group>
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p="md">
-        <AppShell.Section grow component={ScrollArea}>
-          <Stack gap={8}>
+      <AppShell.Navbar
+        p="md"
+        style={{
+          borderRight: `1px solid rgba(${theme.colors.gray[5]}, 0.3)`,
+          backgroundColor: theme.white,
+        }}
+      >
+        <AppShell.Section mb="lg">
+          <Group h="100%" px="md" justify="space-between">
+            <Burger
+              opened={opened}
+              onClick={() => setOpened((o) => !o)}
+              hiddenFrom="sm"
+              size="sm"
+              mr="sm"
+            />
+            <Text
+              size="lg"
+              fw={700}
+              variant="gradient"
+              gradient={{ from: "blue", to: "cyan", deg: 90 }}
+            >
+              PRS Management
+            </Text>
+          </Group>
+        </AppShell.Section>
+
+        <AppShell.Section grow component={ScrollArea} mx="-xs" px="xs">
+          <Stack gap="xs" mb="lg">
             {navLinks.map((link) => (
               <NavLink
                 key={link.href}
@@ -180,12 +212,37 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </AppShell.Section>
 
         <AppShell.Section>
-          <Divider my="sm" />
-          <Group grow>
+          <Divider
+            my="sm"
+            label="User Actions"
+            labelPosition="center"
+            styles={{
+              label: {
+                fontSize: theme.fontSizes.xs,
+                color: theme.colors.gray[6],
+              },
+            }}
+          />
+
+          <Group mb="md">
+            <Avatar color="blue" radius="xl" size="md">
+              {user?.name ? user.name.charAt(0) : "U"}
+            </Avatar>
+            <Box style={{ textAlign: "left" }}>
+              <Text size="sm" fw={500}>
+                {user?.name || "User"}
+              </Text>
+              <Text size="xs" c="dimmed">
+                {user?.role || "Guest"}
+              </Text>
+            </Box>
+          </Group>
+
+          <Group grow mb="md">
             <Button
-              leftSection={<IconLogout size="1.2rem" />}
+              leftSection={<IconLogout size="1rem" />}
               variant="light"
-              color="gray"
+              radius="md"
               component={Link}
               href="/auth/register"
               onClick={async (e) => {
@@ -193,13 +250,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 await authService.logout();
                 setupUser(null);
               }}
+              fullWidth
             >
               Logout
             </Button>
           </Group>
 
-          <Box my="sm">
-            <Text size="xs" ta="center" c="dimmed">
+          <Box my="sm" ta="center">
+            <Text size="xs" c="dimmed">
               PRS System v1.0.0
             </Text>
           </Box>
@@ -207,7 +265,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </AppShell.Navbar>
 
       <AppShell.Main>
-        <Container size="xl" p={0}>
+        <Container size="xl" p="md">
           {children}
         </Container>
       </AppShell.Main>

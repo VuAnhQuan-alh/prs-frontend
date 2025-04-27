@@ -15,10 +15,11 @@ import { ServiceRequestType } from "@/lib/api/types/service-requests";
 import { ISession } from "@/lib/api/types/sessions";
 import { Seat, Table } from "@/lib/api/types/tables";
 import {
+  Avatar,
+  Box,
   Button,
   Card,
   Container,
-  Divider,
   Flex,
   Group,
   Paper,
@@ -26,7 +27,8 @@ import {
   Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconBell, IconLogout, IconRefresh } from "@tabler/icons-react";
+import { IconBell, IconRefresh } from "@tabler/icons-react";
+import { IconLogout } from "@/components/icons";
 
 type ResponseOption = "YES" | "NO" | "SERVICE";
 
@@ -275,11 +277,11 @@ export default function UserPlayerPage({
   }
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#f8f9fa" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#F8FBFC" }}>
       <header
         style={{
-          padding: "1rem",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          padding: "1.5rem",
+          // boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
           backgroundColor: "#fff",
         }}
       >
@@ -305,7 +307,7 @@ export default function UserPlayerPage({
               <Button
                 variant="light"
                 size="sm"
-                leftSection={<IconLogout size={16} />}
+                leftSection={<IconLogout />}
                 onClick={handleLogout}
               >
                 Exit
@@ -315,7 +317,7 @@ export default function UserPlayerPage({
         </Container>
       </header>
 
-      <Container size="md" py="xl">
+      <Container size="sm" py="xl">
         {realtimeStatus !== "connected" && (
           <Paper
             mb="md"
@@ -348,34 +350,34 @@ export default function UserPlayerPage({
           </Paper>
         )}
 
-        <Card shadow="sm" p="lg" radius="md" mb="md" withBorder>
-          <Group justify="apart" mb="md">
-            <Title order={3}>Your Session</Title>
-            <Text size="sm" c="dimmed">
-              Session #{sessionId.substring(0, 8)}
-            </Text>
-          </Group>
+        <Card p="lg" radius="xl" mb="md" bg="white">
+          <Group justify="apart">
+            <Avatar>PG</Avatar>
+            <Box>
+              <Group justify="apart" mb="xs">
+                <Title order={4}>
+                  {sessions?.user?.name || sessions?.name}
+                </Title>
+                <Text size="sm" c="dimmed">
+                  Session #{sessionId.substring(0, 8)}
+                </Text>
+              </Group>
 
-          <Group>
-            <div>
-              <Text fw={500}>{sessions?.user?.name || sessions?.name}</Text>
-              <Text size="sm" c="dimmed">
+              <Text size="sm" c="#596063">
                 You are seated at Table {sessions?.seat.table?.name}, Seat{" "}
                 {String.fromCharCode(64 + Number(sessions?.seat?.number || 0))}
               </Text>
-            </div>
+            </Box>
           </Group>
         </Card>
 
-        <Card shadow="sm" p="lg" radius="md" withBorder>
+        <Card p="lg" radius="xl" bg="white">
           <Title order={3} mb="xs">
             Current Prompt
           </Title>
-          <Text size="sm" c="dimmed" mb="md">
+          <Text size="sm" c="#596063" mb="md">
             Please respond using the buttons below
           </Text>
-
-          <Divider mb="lg" />
 
           <div
             style={{
@@ -386,10 +388,15 @@ export default function UserPlayerPage({
               justifyContent: "center",
               textAlign: "center",
               fontSize: "1.25rem",
+              background: currentPrompt ? "#228ED01A" : "#F8FBFC",
+              border: currentPrompt ? "2px solid #228ED01A" : "none",
+              borderRadius: "10px",
             }}
           >
             {currentPrompt ? (
-              <Title order={2}>{currentPrompt.title}</Title>
+              <Title order={4} c="#262F33">
+                {currentPrompt.title}
+              </Title>
             ) : (
               <Text fs="italic" c="dimmed">
                 Waiting for prompt...
@@ -406,8 +413,8 @@ export default function UserPlayerPage({
               onClick={() => handleResponse("YES")}
               disabled={!currentPrompt || hasResponded}
               style={{
-                width: "100px",
-                height: "100px",
+                width: "105px",
+                height: "105px",
                 borderRadius: "50%",
                 fontSize: "1.2rem",
               }}
@@ -423,8 +430,8 @@ export default function UserPlayerPage({
               onClick={() => handleResponse("NO")}
               disabled={!currentPrompt || hasResponded}
               style={{
-                width: "100px",
-                height: "100px",
+                width: "105px",
+                height: "105px",
                 borderRadius: "50%",
                 fontSize: "1.2rem",
               }}
@@ -440,13 +447,13 @@ export default function UserPlayerPage({
               onClick={() => handleResponse("SERVICE")}
               disabled={!currentPrompt}
               style={{
-                width: "100px",
-                height: "100px",
+                width: "105px",
+                height: "105px",
                 borderRadius: "50%",
                 fontSize: "1.2rem",
               }}
             >
-              SERVICE
+              SER
             </Button>
           </Flex>
 

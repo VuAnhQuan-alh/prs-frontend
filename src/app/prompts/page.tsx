@@ -5,7 +5,6 @@ import { promptService, tableService } from "@/lib/api/services";
 import {
   Prompt,
   CreatePromptRequest,
-  // PromptResponseOption,
   PromptStatusEnum,
 } from "@/lib/api/types/prompts";
 import {
@@ -22,16 +21,9 @@ import {
   Tabs,
   Card,
   TextInput,
-  // Text,
-  // Accordion,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import {
-  IconEdit,
-  IconTrash,
-  IconPlus,
-  // IconListDetails,
-} from "@tabler/icons-react";
+import { IconEdit, IconTrash, IconPlus } from "@tabler/icons-react";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { Table } from "@/lib/api/types/tables";
@@ -41,12 +33,7 @@ export default function PromptsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
-  // const [responseOptionsOpen, { open: openOptions, close: closeOptions }] =
-  //   useDisclosure(false);
   const [activeTab, setActiveTab] = useState<string | null>("all");
-  // const [responseOptions, setResponseOptions] = useState<
-  //   PromptResponseOption[]
-  // >([]);
 
   const [loadingTables, setLoadingTables] = useState(true);
   const [tables, setTables] = useState<Table[]>([]);
@@ -101,25 +88,6 @@ export default function PromptsPage() {
       setLoading(false);
     }
   };
-
-  // Fetch prompt response options
-  // const fetchResponseOptions = async (promptId: string) => {
-  //   try {
-  //     const options = await promptService.getResponseOptions(promptId);
-  //     setResponseOptions(options);
-  //     openOptions();
-  //   } catch (error: unknown) {
-  //     const errorMessage =
-  //       error instanceof Error
-  //         ? error.message
-  //         : "Failed to load response options";
-  //     notifications.show({
-  //       title: "Error",
-  //       message: errorMessage,
-  //       color: "red",
-  //     });
-  //   }
-  // };
 
   // Fetch tables for select input
   const fetchTables = async () => {
