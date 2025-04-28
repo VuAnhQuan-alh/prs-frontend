@@ -27,10 +27,7 @@ class ServiceRequestService {
     id: string,
     data: UpdateServiceRequestRequest
   ): Promise<ServiceRequest> {
-    return await apiClient.patch<ServiceRequest>(
-      `${this.BASE_URL}/${id}`,
-      data
-    );
+    return await apiClient.put<ServiceRequest>(`${this.BASE_URL}/${id}`, data);
   }
 
   async delete(id: string): Promise<void> {

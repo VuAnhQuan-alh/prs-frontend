@@ -19,7 +19,7 @@ export interface Response {
 }
 
 export interface CreateResponseRequest {
-  content: string;
+  type: ResponseType;
   promptId: string;
   seatId: string;
   sessionId: string;

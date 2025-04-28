@@ -419,16 +419,12 @@ export default function TablesPage() {
   ) => {
     try {
       // Set table status to AVAILABLE if a manager is assigned, otherwise leave unchanged
-      const newStatus = values.userId
-        ? TableStatus.INACTIVE
-        : values.status || TableStatus.INACTIVE;
-
       if (selectedTable) {
         // Update existing table
         await tableService.update(selectedTable.id, {
           name: values.name,
           capacity: values.capacity,
-          status: newStatus,
+          status: values.status || TableStatus.ACTIVE,
           userId: values.userId || null,
         });
         if (values.userId) {

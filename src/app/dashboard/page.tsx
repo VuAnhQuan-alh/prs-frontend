@@ -9,7 +9,7 @@ import {
   Stack,
   Group,
   Button,
-  Card,
+  // Card,
   Table,
   Badge,
   RingProgress,
@@ -21,21 +21,22 @@ import {
 import {
   IconUsers,
   IconTable,
-  IconClipboardText,
+  // IconClipboardText,
   IconMessageDots,
   IconBell,
   IconArrowUp,
   IconArrowDown,
   IconCheck,
-  IconFileReport,
+  // IconFileReport,
 } from "@tabler/icons-react";
-import { serviceRequestService } from "@/lib/api/services";
+import { dashboardService, serviceRequestService } from "@/lib/api/services";
 import {
   ServiceRequestStatus,
   ServiceRequest,
 } from "@/lib/api/types/service-requests";
 import { format } from "date-fns";
 import Link from "next/link";
+import { IDashboard } from "@/lib/api/types/dashboards";
 
 interface StatsCardProps {
   title: string;
@@ -99,13 +100,7 @@ function StatsCard({ title, value, icon, description, diff }: StatsCardProps) {
 export default function Dashboard() {
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    activeUsers: "0",
-    activeTables: "0",
-    activePrompts: "0",
-    activeSessions: "0",
-    openServiceRequests: "0",
-  });
+  const [stats, setStats] = useState<IDashboard | null>(null);
 
   // Mock statistics distribution for the ring progress
   const serviceRequestsStats = [
@@ -119,6 +114,19 @@ export default function Dashboard() {
     fetchServiceRequests();
     fetchDashboardStats();
   }, []);
+
+  // Function to fetch statistics from API
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      const data = await dashboardService.getStatistics();
+      setStats(data);
+    } catch (error) {
+      console.error("Failed to fetch statistics:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Function to fetch service requests from API
   const fetchServiceRequests = async () => {
@@ -136,19 +144,6 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Function to fetch dashboard statistics
-  const fetchDashboardStats = async () => {
-    // This would be replaced with actual API calls in a real application
-    // Mocking data for demonstration
-    setStats({
-      activeUsers: "42",
-      activeTables: "15",
-      activePrompts: "128",
-      activeSessions: "8",
-      openServiceRequests: "12",
-    });
   };
 
   // Render service request status badge
@@ -174,38 +169,36 @@ export default function Dashboard() {
       </Title>
 
       {/* Stats Cards */}
-      <SimpleGrid cols={{ base: 1, sm: 2, md: 5 }} mb={30} spacing="md">
+      <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} mb={30} spacing="md">
         <StatsCard
           title="ACTIVE USERS"
-          value={stats.activeUsers}
+          value={stats ? stats.activeSessions.count.toString() : "0"}
           icon={<IconUsers size="1.5rem" stroke={1.5} />}
           description="compared to last week"
-          diff={12}
+          diff={stats ? stats.activeSessions.percentChange : 0}
         />
         <StatsCard
           title="ACTIVE TABLES"
-          value={stats.activeTables}
+          value={
+            stats
+              ? stats.activeTablesWithMultipleSessions.count.toString()
+              : "0"
+          }
           icon={<IconTable size="1.5rem" stroke={1.5} />}
           description="in service now"
         />
         <StatsCard
-          title="ACTIVE SESSIONS"
-          value={stats.activeSessions}
-          icon={<IconClipboardText size="1.5rem" stroke={1.5} />}
-          description="across all tables"
-        />
-        <StatsCard
           title="ACTIVE PROMPTS"
-          value={stats.activePrompts}
+          value={stats ? stats.prompts.count.toString() : "0"}
           icon={<IconMessageDots size="1.5rem" stroke={1.5} />}
           description="deployed in system"
         />
         <StatsCard
           title="SERVICE REQUESTS"
-          value={stats.openServiceRequests}
+          value={stats ? stats.serviceRequests.count.toString() : "0"}
           icon={<IconBell size="1.5rem" stroke={1.5} />}
           description="require attention"
-          diff={-5}
+          diff={stats ? stats.serviceRequests.percentChange : 0}
         />
       </SimpleGrid>
 
@@ -305,7 +298,7 @@ export default function Dashboard() {
         </Grid.Col>
 
         {/* Quick Actions */}
-        <Grid.Col span={12}>
+        {/* <Grid.Col span={12}>
           <Paper radius="md" withBorder p="md">
             <Title order={3} mb="md">
               Quick Actions
@@ -449,7 +442,7 @@ export default function Dashboard() {
               </Card>
             </SimpleGrid>
           </Paper>
-        </Grid.Col>
+        </Grid.Col> */}
       </Grid>
     </>
   );

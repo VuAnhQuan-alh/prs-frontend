@@ -175,20 +175,20 @@ export default function ServiceRequestsPage() {
   };
 
   // Function to render priority badge
-  const renderPriorityBadge = (priority: ServiceRequestPriority) => {
-    const colorMap: Record<ServiceRequestPriority, string> = {
-      [ServiceRequestPriority.LOW]: "blue",
-      [ServiceRequestPriority.MEDIUM]: "yellow",
-      [ServiceRequestPriority.HIGH]: "orange",
-      [ServiceRequestPriority.URGENT]: "red",
-    };
+  // const renderPriorityBadge = (priority: ServiceRequestPriority) => {
+  //   const colorMap: Record<ServiceRequestPriority, string> = {
+  //     [ServiceRequestPriority.LOW]: "blue",
+  //     [ServiceRequestPriority.MEDIUM]: "yellow",
+  //     [ServiceRequestPriority.HIGH]: "orange",
+  //     [ServiceRequestPriority.URGENT]: "red",
+  //   };
 
-    return (
-      <Badge color={colorMap[priority]} variant="light">
-        {priority}
-      </Badge>
-    );
-  };
+  //   return (
+  //     <Badge color={colorMap[priority]} variant="light">
+  //       {priority}
+  //     </Badge>
+  //   );
+  // };
 
   // Handle create form submit
   const handleCreateSubmit = async (values: CreateServiceRequestRequest) => {
@@ -347,7 +347,7 @@ export default function ServiceRequestsPage() {
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>Type</Table.Th>
-                <Table.Th>Priority</Table.Th>
+                {/* <Table.Th>Priority</Table.Th> */}
                 <Table.Th>Description</Table.Th>
                 <Table.Th>Status</Table.Th>
                 <Table.Th>Created</Table.Th>
@@ -372,7 +372,7 @@ export default function ServiceRequestsPage() {
                 filteredRequests.map((request) => (
                   <Table.Tr key={request.id}>
                     <Table.Td>{request.type.replace("_", " ")}</Table.Td>
-                    <Table.Td>{renderPriorityBadge(request.priority)}</Table.Td>
+                    {/* <Table.Td>{renderPriorityBadge(request.priority)}</Table.Td> */}
                     <Table.Td>
                       {request.description.substring(0, 50)}...
                     </Table.Td>

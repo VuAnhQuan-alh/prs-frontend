@@ -29,8 +29,9 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IconBell, IconRefresh } from "@tabler/icons-react";
 import { IconLogout } from "@/components/icons";
+import { ResponseType } from "@/lib/api/types/responses";
 
-type ResponseOption = "YES" | "NO" | "SERVICE";
+type ResponseOption = ResponseType;
 
 type ISessionPlayer = ISession & {
   seat: Seat & { table: Table };
@@ -206,7 +207,7 @@ export default function UserPlayerPage({
     try {
       setSelectedResponse(response);
 
-      if (response === "SERVICE") {
+      if (response === ResponseType.SERVICE_REQUEST) {
         // Create a service request - in real implementation, call the API
         // For now, just simulate success
         await serviceRequestService.create({
@@ -229,7 +230,7 @@ export default function UserPlayerPage({
         await responseService.create({
           promptId: currentPrompt.id,
           seatId: sessions.seatId,
-          content: response,
+          type: response,
           sessionId: sessions.id,
         });
 
@@ -409,8 +410,10 @@ export default function UserPlayerPage({
               size="xl"
               radius="xl"
               color="green"
-              variant={selectedResponse === "YES" ? "filled" : "light"}
-              onClick={() => handleResponse("YES")}
+              variant={
+                selectedResponse === ResponseType.YES ? "filled" : "light"
+              }
+              onClick={() => handleResponse(ResponseType.YES)}
               disabled={!currentPrompt || hasResponded}
               style={{
                 width: "105px",
@@ -426,8 +429,10 @@ export default function UserPlayerPage({
               size="xl"
               radius="xl"
               color="red"
-              variant={selectedResponse === "NO" ? "filled" : "light"}
-              onClick={() => handleResponse("NO")}
+              variant={
+                selectedResponse === ResponseType.NO ? "filled" : "light"
+              }
+              onClick={() => handleResponse(ResponseType.NO)}
               disabled={!currentPrompt || hasResponded}
               style={{
                 width: "105px",
@@ -443,8 +448,12 @@ export default function UserPlayerPage({
               size="xl"
               radius="xl"
               color="yellow"
-              variant={selectedResponse === "SERVICE" ? "filled" : "light"}
-              onClick={() => handleResponse("SERVICE")}
+              variant={
+                selectedResponse === ResponseType.SERVICE_REQUEST
+                  ? "filled"
+                  : "light"
+              }
+              onClick={() => handleResponse(ResponseType.SERVICE_REQUEST)}
               disabled={!currentPrompt}
               style={{
                 width: "105px",
