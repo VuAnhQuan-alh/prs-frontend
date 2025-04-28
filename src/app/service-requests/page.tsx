@@ -244,7 +244,9 @@ export default function ServiceRequestsPage() {
       window.confirm("Are you sure you want to delete this service request?")
     ) {
       try {
-        await serviceRequestService.delete(id);
+        await serviceRequestService.update(id, {
+          status: ServiceRequestStatus.CANCELLED,
+        });
         notifications.show({
           title: "Success",
           message: "Service request has been deleted",
@@ -403,14 +405,16 @@ export default function ServiceRequestsPage() {
                             <IconCheck size="1rem" />
                           </ActionIcon>
                         )}
-                        <ActionIcon
-                          variant="subtle"
-                          color="red"
-                          onClick={() => handleDelete(request.id)}
-                          title="Delete"
-                        >
-                          <IconTrash size="1rem" />
-                        </ActionIcon>
+                        {request.status !== ServiceRequestStatus.CANCELLED && (
+                          <ActionIcon
+                            variant="subtle"
+                            color="red"
+                            onClick={() => handleDelete(request.id)}
+                            title="Delete"
+                          >
+                            <IconTrash size="1rem" />
+                          </ActionIcon>
+                        )}
                       </Group>
                     </Table.Td>
                   </Table.Tr>

@@ -5,8 +5,8 @@ import {
   tableService,
   seatService,
   promptService,
-  serviceRequestService,
-  responseService,
+  // serviceRequestService,
+  // responseService,
   sessionService,
 } from "@/lib/api/services";
 import {
@@ -63,7 +63,8 @@ import {
   IconClipboardList,
   IconDownload,
   IconPrinter,
-  IconStatusChange,
+  IconUserCheck,
+  IconUserX,
 } from "@tabler/icons-react";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
@@ -185,6 +186,7 @@ export default function TablesPage() {
   useEffect(() => {
     if (selectedTable) {
       fetchPrompts();
+      fetchTableActivities(selectedTable.id);
     }
   }, [selectedTable]);
 
@@ -296,45 +298,64 @@ export default function TablesPage() {
   };
 
   // New function to fetch data for a selected seat
-  const fetchSeatDetails = async (seatId: string) => {
-    if (!seatId) return;
+  // const fetchSeatDetails = async (seatId: string) => {
+  //   if (!seatId) return;
 
-    setLoadingDetails(true);
-    const seat = tableSeats.find((s) => s.id === seatId);
-    setSelectedSeat(seat || null);
+  //   setLoadingDetails(true);
+  //   const seat = tableSeats.find((s) => s.id === seatId);
+  //   setSelectedSeat(seat || null);
 
+  //   try {
+  //     // Fetch service requests for this seat
+  //     const requests = await serviceRequestService.getBySeat(seatId);
+  //     setTableServiceRequests(requests || []);
+
+  //     // Fetch prompt responses for this seat
+  //     const responses = await responseService.getBySeat(seatId);
+  //     setTableResponses(responses || []);
+
+  //     // Fetch prompts shown to this seat
+  //     // Since there's no direct API to get prompts by seat,
+  //     // we can extract unique promptIds from responses
+  //     const promptIds = [...new Set(responses.map((r) => r.promptId))];
+  //     const prompts: Prompt[] = [];
+
+  //     for (const promptId of promptIds) {
+  //       try {
+  //         const prompt = await promptService.getById(promptId);
+  //         if (prompt) {
+  //           prompts.push(prompt);
+  //         }
+  //       } catch (e) {
+  //         console.error(`Failed to fetch prompt ${promptId}:`, e);
+  //       }
+  //     }
+
+  //     setTablePrompts(prompts);
+  //   } catch (error) {
+  //     console.error("Failed to fetch seat details:", error);
+  //     notifications.show({
+  //       title: "Error",
+  //       message: "Failed to load seat details",
+  //       color: "red",
+  //     });
+  //   } finally {
+  //     setLoadingDetails(false);
+  //   }
+  // };
+
+  // Function to fetch service requests and response for table
+  const fetchTableActivities = async (tableId: string) => {
     try {
-      // Fetch service requests for this seat
-      const requests = await serviceRequestService.getBySeat(seatId);
-      setTableServiceRequests(requests || []);
-
-      // Fetch prompt responses for this seat
-      const responses = await responseService.getBySeat(seatId);
-      setTableResponses(responses || []);
-
-      // Fetch prompts shown to this seat
-      // Since there's no direct API to get prompts by seat,
-      // we can extract unique promptIds from responses
-      const promptIds = [...new Set(responses.map((r) => r.promptId))];
-      const prompts: Prompt[] = [];
-
-      for (const promptId of promptIds) {
-        try {
-          const prompt = await promptService.getById(promptId);
-          if (prompt) {
-            prompts.push(prompt);
-          }
-        } catch (e) {
-          console.error(`Failed to fetch prompt ${promptId}:`, e);
-        }
-      }
-
-      setTablePrompts(prompts);
+      setLoadingDetails(true);
+      const activities = await tableService.getActivities(tableId);
+      setTableServiceRequests(activities.serviceRequests || []);
+      setTableResponses(activities.responses || []);
     } catch (error) {
-      console.error("Failed to fetch seat details:", error);
+      console.error("Failed to fetch table activities:", error);
       notifications.show({
         title: "Error",
-        message: "Failed to load seat details",
+        message: "Failed to load table activities",
         color: "red",
       });
     } finally {
@@ -605,7 +626,11 @@ export default function TablesPage() {
           >
             Refresh
           </Button>
-          <Button leftSection={<IconPlus size="1rem" />} onClick={handleCreate}>
+          <Button
+            variant="light"
+            leftSection={<IconPlus size="1rem" />}
+            onClick={handleCreate}
+          >
             Add Table
           </Button>
         </Group>
@@ -836,7 +861,7 @@ export default function TablesPage() {
                           key={seat.id}
                           bg={
                             seat.user
-                              ? "var(--mantine-color-green-1)"
+                              ? "var(--mantine-color-blue-0)"
                               : seat.status === SeatStatus.ACTIVE
                               ? "var(--mantine-color-white-1)"
                               : "var(--mantine-color-gray-1"
@@ -867,44 +892,28 @@ export default function TablesPage() {
                                 <Text size="sm" c="dimmed">
                                   {seat.status === SeatStatus.ACTIVE
                                     ? seat.user
-                                      ? seat.user.name.substring(0, 16) + "..."
+                                      ? seat.user.name
                                       : "Not occupied"
                                     : "Not active"}
                                 </Text>
                               </Stack>
                             </Group>
 
-                            <ActionIcon
-                              variant="subtle"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // handleEdit(selectedTable);
-                              }}
-                            >
-                              <IconUser size="1.2rem" />
-                            </ActionIcon>
-
-                            <Tooltip label="View Details">
-                              <ActionIcon
-                                variant="light"
-                                c="gray"
-                                // onClick={(e) => toggleSeatStatus(seat, e)}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  fetchSeatDetails(seat.id);
-                                }}
-                              >
-                                <IconDetails size="1.2rem" />
-                              </ActionIcon>
-                            </Tooltip>
-
                             <Tooltip label="Change status">
                               <ActionIcon
                                 variant="light"
-                                c="green"
+                                c={
+                                  seat.status === SeatStatus.ACTIVE
+                                    ? "green"
+                                    : "gray"
+                                }
                                 onClick={(e) => toggleSeatStatus(seat, e)}
                               >
-                                <IconStatusChange size="1.2rem" />
+                                {seat.status === SeatStatus.ACTIVE ? (
+                                  <IconUserCheck size="1.2rem" />
+                                ) : (
+                                  <IconUserX size="1.2rem" />
+                                )}
                               </ActionIcon>
                             </Tooltip>
                           </Group>
@@ -1103,7 +1112,6 @@ export default function TablesPage() {
                           <MantineTable.Th>Seat</MantineTable.Th>
                           <MantineTable.Th>Type</MantineTable.Th>
                           <MantineTable.Th>Status</MantineTable.Th>
-                          <MantineTable.Th>Priority</MantineTable.Th>
                           <MantineTable.Th>Created</MantineTable.Th>
                           <MantineTable.Th>Notes</MantineTable.Th>
                         </MantineTable.Tr>
@@ -1138,21 +1146,7 @@ export default function TablesPage() {
                                   {request.status}
                                 </Badge>
                               </MantineTable.Td>
-                              <MantineTable.Td>
-                                <Badge
-                                  color={
-                                    request.priority === "HIGH"
-                                      ? "red"
-                                      : request.priority === "MEDIUM"
-                                      ? "yellow"
-                                      : request.priority === "URGENT"
-                                      ? "orange"
-                                      : "blue" // LOW
-                                  }
-                                >
-                                  {request.priority}
-                                </Badge>
-                              </MantineTable.Td>
+
                               <MantineTable.Td>
                                 {new Date(request.createdAt).toLocaleString()}
                               </MantineTable.Td>
@@ -1186,7 +1180,7 @@ export default function TablesPage() {
 
                         return (
                           <Card key={response.id} withBorder mb="sm">
-                            <Group justify="space-between" mb="xs">
+                            <Group justify="space-between">
                               <Group>
                                 <Badge>
                                   Seat{" "}
@@ -1202,13 +1196,6 @@ export default function TablesPage() {
                                 {new Date(response.createdAt).toLocaleString()}
                               </Text>
                             </Group>
-                            <Divider mb="sm" />
-                            <Text>{response.type}</Text>
-                            {response.promptId && (
-                              <Badge mt="xs" variant="outline">
-                                Selected option: {response.promptId}
-                              </Badge>
-                            )}
                           </Card>
                         );
                       })}

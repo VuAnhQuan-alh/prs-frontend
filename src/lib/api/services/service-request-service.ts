@@ -59,6 +59,24 @@ class ServiceRequestService {
       {}
     );
   }
+
+  async getStatsByStatus(): Promise<{
+    totalRequests: number;
+    statusStats: {
+      status: string;
+      count: number;
+      percentage: number;
+    }[];
+  }> {
+    return await apiClient.get<{
+      totalRequests: number;
+      statusStats: {
+        status: string;
+        count: number;
+        percentage: number;
+      }[];
+    }>(`${this.BASE_URL}/stats/by-status`);
+  }
 }
 
 export const serviceRequestService = new ServiceRequestService();

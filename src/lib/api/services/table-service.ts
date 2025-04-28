@@ -1,5 +1,7 @@
 import { apiClient } from "../api-client";
 import { Prompt } from "../types/prompts";
+import { Response } from "../types/responses";
+import { ServiceRequest } from "../types/service-requests";
 import {
   CreateTableRequest,
   Table,
@@ -35,6 +37,16 @@ class TableService {
 
   async getSeats(tableId: string): Promise<Table> {
     return await apiClient.get<Table>(`${this.BASE_URL}/${tableId}/seats`);
+  }
+
+  async getActivities(tableId: string): Promise<{
+    responses: Response[];
+    serviceRequests: ServiceRequest[];
+  }> {
+    return await apiClient.get<{
+      responses: Response[];
+      serviceRequests: ServiceRequest[];
+    }>(`${this.BASE_URL}/${tableId}/activities`);
   }
 
   /**

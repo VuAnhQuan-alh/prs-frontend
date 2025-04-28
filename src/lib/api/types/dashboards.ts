@@ -1,4 +1,7 @@
 export interface IDashboard {
+  activeUsers: {
+    count: number;
+  };
   activeSessions: {
     count: number;
     percentChange: number;

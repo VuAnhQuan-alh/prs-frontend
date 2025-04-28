@@ -219,6 +219,13 @@ export default function UserPlayerPage({
           sessionId: sessions.id,
         });
 
+        responseService.create({
+          promptId: currentPrompt.id,
+          seatId: sessions.seatId,
+          type: response,
+          sessionId: sessions.id,
+        });
+
         notifications.show({
           title: "Service Request Submitted",
           message: "Your service request has been sent to staff.",

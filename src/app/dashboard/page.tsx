@@ -27,7 +27,7 @@ import {
   IconArrowUp,
   IconArrowDown,
   IconCheck,
-  // IconFileReport,
+  IconFileReport,
 } from "@tabler/icons-react";
 import { dashboardService, serviceRequestService } from "@/lib/api/services";
 import {
@@ -58,7 +58,7 @@ function StatsCard({ title, value, icon, description, diff }: StatsCardProps) {
         </ThemeIcon>
       </Group>
 
-      <Title order={2} fw={700} my="sm">
+      <Title order={2} fw={700} my="xs">
         {value}
       </Title>
 
@@ -86,7 +86,7 @@ function StatsCard({ title, value, icon, description, diff }: StatsCardProps) {
                 ? "red.7"
                 : "dimmed"
             }
-            fz="sm"
+            fz="xs"
             fw={500}
           >
             {diff ? `${Math.abs(diff)}%` : ""} {description}
@@ -101,18 +101,26 @@ export default function Dashboard() {
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<IDashboard | null>(null);
+  const [serviceRequestsStats, setServiceRequestsStats] = useState<
+    {
+      status: string;
+      color: string;
+      value: number;
+    }[]
+  >([]);
 
   // Mock statistics distribution for the ring progress
-  const serviceRequestsStats = [
-    { status: "Open", color: "red", value: 25 },
-    { status: "In Progress", color: "yellow", value: 45 },
-    { status: "Resolved", color: "green", value: 30 },
-  ];
+  // const serviceRequestsStats = [
+  //   { status: "Open", color: "red", value: 25 },
+  //   { status: "In Progress", color: "yellow", value: 45 },
+  //   { status: "Resolved", color: "green", value: 30 },
+  // ];
 
   // Fetch service requests on component mount
   useEffect(() => {
     fetchServiceRequests();
     fetchDashboardStats();
+    fetchServiceRequestStatus();
   }, []);
 
   // Function to fetch statistics from API
@@ -146,6 +154,31 @@ export default function Dashboard() {
     }
   };
 
+  // Function to fetch service request status distribution
+  const fetchServiceRequestStatus = async () => {
+    try {
+      setLoading(true);
+      const data = await serviceRequestService.getStatsByStatus();
+      const statusDistribution = data.statusStats.map((item) => ({
+        status: item.status,
+        color:
+          item.status === ServiceRequestStatus.OPEN
+            ? "red"
+            : item.status === ServiceRequestStatus.IN_PROGRESS
+            ? "yellow"
+            : item.status === ServiceRequestStatus.RESOLVED
+            ? "green"
+            : "gray",
+        value: item.percentage,
+      }));
+      setServiceRequestsStats(statusDistribution);
+    } catch (error) {
+      console.error("Failed to fetch service request status:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Render service request status badge
   const renderStatusBadge = (status: ServiceRequestStatus) => {
     const colorMap: Record<ServiceRequestStatus, string> = {
@@ -169,13 +202,19 @@ export default function Dashboard() {
       </Title>
 
       {/* Stats Cards */}
-      <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} mb={30} spacing="md">
+      <SimpleGrid cols={{ base: 1, sm: 2, md: 5 }} mb={30} spacing="md">
         <StatsCard
           title="ACTIVE USERS"
           value={stats ? stats.activeSessions.count.toString() : "0"}
           icon={<IconUsers size="1.5rem" stroke={1.5} />}
           description="compared to last week"
           diff={stats ? stats.activeSessions.percentChange : 0}
+        />
+        <StatsCard
+          title="ACTIVE SESSIONS"
+          value={stats ? stats.activeUsers.count.toString() : "0"}
+          icon={<IconFileReport size="1.5rem" stroke={1.5} />}
+          description="deployed in system"
         />
         <StatsCard
           title="ACTIVE TABLES"
@@ -214,7 +253,7 @@ export default function Dashboard() {
               </Button>
             </Group>
 
-            <Table highlightOnHover withTableBorder>
+            <Table highlightOnHover striped>
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th>Type</Table.Th>
