@@ -25,6 +25,10 @@ class TableService {
     return await apiClient.get(this.BASE_URL, { params: filters });
   }
 
+  async getAllTablesForPlayer(): Promise<Table[]> {
+    return await apiClient.get<Table[]>(`${this.BASE_URL}/for-player`);
+  }
+
   async getById(id: string): Promise<Table & { prompt: Prompt | null }> {
     return await apiClient.get<Table & { prompt: Prompt | null }>(
       `${this.BASE_URL}/${id}`

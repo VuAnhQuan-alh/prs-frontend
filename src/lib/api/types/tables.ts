@@ -61,6 +61,7 @@ export interface UpdateSeatRequest {
 }
 
 export interface TableFilters {
+  archived?: boolean;
   status?: TableStatus;
   locationId?: string;
   capacity?: number;

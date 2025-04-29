@@ -26,6 +26,7 @@ import { authService } from "@/lib/api/services";
 import {
   IconAdmin24,
   IconDashboard,
+  IconNotice,
   IconPrompt,
   IconReport,
   IconTable,
@@ -108,6 +109,12 @@ const getNavigationItems = (path: string, role?: Role) => {
       label: "Prompts",
       href: "/prompts",
       roles: [Role.ADMIN, Role.TABLE],
+    },
+    {
+      icon: <IconNotice active={path == "/service-requests"} />,
+      label: "Announcements",
+      href: "/service-requests",
+      roles: [Role.ADMIN, Role.USER],
     },
     {
       icon: <IconReport active={path == "/reports"} />,

@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { seatService, serviceRequestService } from "@/lib/api/services";
+import {
+  seatService,
+  serviceRequestService,
+  userService,
+} from "@/lib/api/services";
 import { tableService } from "@/lib/api/services"; // Add this import
 import {
   ServiceRequest,
   ServiceRequestStatus,
-  ServiceRequestPriority,
+  // ServiceRequestPriority,
   ServiceRequestType,
   CreateServiceRequestRequest,
   UpdateServiceRequestRequest,
@@ -42,10 +46,13 @@ import {
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { format } from "date-fns";
+import { Role } from "@/lib/api/types/auth";
+import { User } from "@/lib/api/types/users";
 
 export default function ServiceRequestsPage() {
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [tables, setTables] = useState<TableType[]>([]);
+  const [users, setUsers] = useState<User[]>([]); // Adjust type as needed
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [tableSeats, setTableSeats] = useState<Seat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,6 +63,12 @@ export default function ServiceRequestsPage() {
     useDisclosure(false);
   const [updateOpened, { open: openUpdate, close: closeUpdate }] =
     useDisclosure(false);
+  const [deleteOpened, { open: openDelete, close: closeDelete }] =
+    useDisclosure(false);
+  const [resolveOpened, { open: openResolve, close: closeResolve }] =
+    useDisclosure(false);
+  const [requestToDelete, setRequestToDelete] = useState<string>("");
+  const [requestToResolve, setRequestToResolve] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<string | null>("all");
 
@@ -64,7 +77,6 @@ export default function ServiceRequestsPage() {
       seatId: "",
       sessionId: "",
       type: ServiceRequestType.ASSISTANCE,
-      priority: ServiceRequestPriority.MEDIUM,
       description: "",
     },
     validate: {
@@ -77,16 +89,20 @@ export default function ServiceRequestsPage() {
   const updateForm = useForm<UpdateServiceRequestRequest>({
     initialValues: {
       status: ServiceRequestStatus.OPEN,
-      priority: ServiceRequestPriority.MEDIUM,
-      assignedUserId: "",
+      // priority: ServiceRequestPriority.MEDIUM,
+      assignId: "",
       notes: "",
     },
   });
 
+  useEffect(() => {
+    fetchTables();
+    fetchUsers();
+  }, []);
+
   // Fetch service requests on component mount
   useEffect(() => {
     fetchServiceRequests();
-    fetchTables();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
@@ -100,6 +116,26 @@ export default function ServiceRequestsPage() {
       notifications.show({
         title: "Error",
         message: "Failed to load tables",
+        color: "red",
+      });
+    }
+  };
+
+  // Fetch users for the update form, role User, is active
+  const fetchUsers = async () => {
+    try {
+      const data = await userService.getAll({
+        role: Role.USER,
+        isActive: true,
+      });
+      setUsers(data);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown Failed to load users";
+      notifications.show({
+        title: "Error",
+        message: errorMessage,
         color: "red",
       });
     }
@@ -174,25 +210,15 @@ export default function ServiceRequestsPage() {
     );
   };
 
-  // Function to render priority badge
-  // const renderPriorityBadge = (priority: ServiceRequestPriority) => {
-  //   const colorMap: Record<ServiceRequestPriority, string> = {
-  //     [ServiceRequestPriority.LOW]: "blue",
-  //     [ServiceRequestPriority.MEDIUM]: "yellow",
-  //     [ServiceRequestPriority.HIGH]: "orange",
-  //     [ServiceRequestPriority.URGENT]: "red",
-  //   };
-
-  //   return (
-  //     <Badge color={colorMap[priority]} variant="light">
-  //       {priority}
-  //     </Badge>
-  //   );
-  // };
-
   // Handle create form submit
   const handleCreateSubmit = async (values: CreateServiceRequestRequest) => {
     try {
+      // Validate form before submission
+      const validationErrors = createForm.validate();
+      if (validationErrors.hasErrors) {
+        return; // Stop submission if there are errors
+      }
+
       await serviceRequestService.create(values);
       notifications.show({
         title: "Success",
@@ -217,6 +243,12 @@ export default function ServiceRequestsPage() {
   const handleUpdateSubmit = async (values: UpdateServiceRequestRequest) => {
     if (!selectedRequest) return;
 
+    // Validate form before submission
+    const validationErrors = updateForm.validate();
+    if (validationErrors.hasErrors) {
+      return; // Stop submission if there are errors
+    }
+
     try {
       await serviceRequestService.update(selectedRequest.id, values);
       notifications.show({
@@ -240,55 +272,45 @@ export default function ServiceRequestsPage() {
 
   // Handle delete service request
   const handleDelete = async (id: string) => {
-    if (
-      window.confirm("Are you sure you want to delete this service request?")
-    ) {
-      try {
-        await serviceRequestService.update(id, {
-          status: ServiceRequestStatus.CANCELLED,
-        });
-        notifications.show({
-          title: "Success",
-          message: "Service request has been deleted",
-          color: "green",
-        });
-        fetchServiceRequests();
-      } catch (error) {
-        console.error("Failed to delete service request:", error);
-        notifications.show({
-          title: "Error",
-          message: "Failed to delete service request",
-          color: "red",
-        });
-      }
+    try {
+      await serviceRequestService.update(id, {
+        status: ServiceRequestStatus.CANCELLED,
+      });
+      notifications.show({
+        title: "Success",
+        message: "Service request has been deleted",
+        color: "green",
+      });
+      fetchServiceRequests();
+    } catch (error) {
+      console.error("Failed to delete service request:", error);
+      notifications.show({
+        title: "Error",
+        message: "Failed to delete service request",
+        color: "red",
+      });
     }
   };
 
   // Handle resolve service request
   const handleResolve = async (id: string) => {
-    if (
-      window.confirm(
-        "Are you sure you want to mark this service request as resolved?"
-      )
-    ) {
-      try {
-        await serviceRequestService.update(id, {
-          status: ServiceRequestStatus.RESOLVED,
-        });
-        notifications.show({
-          title: "Success",
-          message: "Service request has been resolved",
-          color: "green",
-        });
-        fetchServiceRequests();
-      } catch (error) {
-        console.error("Failed to resolve service request:", error);
-        notifications.show({
-          title: "Error",
-          message: "Failed to resolve service request",
-          color: "red",
-        });
-      }
+    try {
+      await serviceRequestService.update(id, {
+        status: ServiceRequestStatus.RESOLVED,
+      });
+      notifications.show({
+        title: "Success",
+        message: "Service request has been resolved",
+        color: "green",
+      });
+      fetchServiceRequests();
+    } catch (error) {
+      console.error("Failed to resolve service request:", error);
+      notifications.show({
+        title: "Error",
+        message: "Failed to resolve service request",
+        color: "red",
+      });
     }
   };
 
@@ -297,8 +319,8 @@ export default function ServiceRequestsPage() {
     setSelectedRequest(request);
     updateForm.setValues({
       status: request.status,
-      priority: request.priority,
-      assignedUserId: request.assignedUserId || "",
+      // priority: request.priority,
+      assignId: request.assignId || "",
       notes: request.notes || "",
     });
     openUpdate();
@@ -318,7 +340,11 @@ export default function ServiceRequestsPage() {
       <Group justify="space-between" mb="lg">
         <Title order={2}>Service Requests</Title>
 
-        <Button leftSection={<IconPlus size="1rem" />} onClick={openCreate}>
+        <Button
+          variant="light"
+          leftSection={<IconPlus size="1rem" />}
+          onClick={openCreate}
+        >
           New Request
         </Button>
       </Group>
@@ -383,12 +409,12 @@ export default function ServiceRequestsPage() {
                       {format(new Date(request.createdAt), "MMM dd, yyyy")}
                     </Table.Td>
                     <Table.Td>
-                      {request.assignedUserId || "Unassigned"}
+                      {request?.assigned?.name || "Unassigned"}
                     </Table.Td>
                     <Table.Td>
                       <Group gap="xs">
                         <ActionIcon
-                          variant="subtle"
+                          variant="light"
                           color="blue"
                           onClick={() => handleUpdateClick(request)}
                           title="Edit"
@@ -397,9 +423,12 @@ export default function ServiceRequestsPage() {
                         </ActionIcon>
                         {request.status !== ServiceRequestStatus.RESOLVED && (
                           <ActionIcon
-                            variant="subtle"
+                            variant="light"
                             color="green"
-                            onClick={() => handleResolve(request.id)}
+                            onClick={() => {
+                              setRequestToResolve(request.id);
+                              openResolve();
+                            }}
                             title="Mark as Resolved"
                           >
                             <IconCheck size="1rem" />
@@ -407,9 +436,12 @@ export default function ServiceRequestsPage() {
                         )}
                         {request.status !== ServiceRequestStatus.CANCELLED && (
                           <ActionIcon
-                            variant="subtle"
+                            variant="light"
                             color="red"
-                            onClick={() => handleDelete(request.id)}
+                            onClick={() => {
+                              setRequestToDelete(request.id);
+                              openDelete();
+                            }}
                             title="Delete"
                           >
                             <IconTrash size="1rem" />
@@ -477,7 +509,7 @@ export default function ServiceRequestsPage() {
               {...createForm.getInputProps("type")}
             />
 
-            <Select
+            {/* <Select
               label="Priority"
               placeholder="Select priority"
               data={Object.values(ServiceRequestPriority).map((priority) => ({
@@ -485,7 +517,7 @@ export default function ServiceRequestsPage() {
                 label: priority,
               }))}
               {...createForm.getInputProps("priority")}
-            />
+            /> */}
 
             <Textarea
               label="Description"
@@ -537,19 +569,13 @@ export default function ServiceRequestsPage() {
               />
 
               <Select
-                label="Priority"
-                placeholder="Select priority"
-                data={Object.values(ServiceRequestPriority).map((priority) => ({
-                  value: priority,
-                  label: priority,
+                label="Assigned User"
+                placeholder="Select assigned user"
+                data={users.map((user) => ({
+                  value: user.id,
+                  label: `${user.name} (${user.email})`,
                 }))}
-                {...updateForm.getInputProps("priority")}
-              />
-
-              <TextInput
-                label="Assigned User ID"
-                placeholder="Enter user ID for assignment"
-                {...updateForm.getInputProps("assignedUserId")}
+                {...updateForm.getInputProps("assignId")}
               />
 
               <MantineTextarea
@@ -565,6 +591,60 @@ export default function ServiceRequestsPage() {
             </Stack>
           </form>
         )}
+      </Modal>
+
+      {/* Delete confirmation modal */}
+      <Modal
+        opened={deleteOpened}
+        onClose={closeDelete}
+        title="Delete Service Request"
+        centered
+      >
+        <Text>Are you sure you want to delete this service request?</Text>
+        <Group justify="flex-end" mt="md">
+          <Button variant="outline" color="gray" onClick={closeDelete}>
+            Cancel
+          </Button>
+          <Button
+            color="red"
+            onClick={async () => {
+              if (requestToDelete) {
+                await handleDelete(requestToDelete);
+                closeDelete();
+              }
+            }}
+          >
+            Confirm Delete
+          </Button>
+        </Group>
+      </Modal>
+
+      {/* Resolve confirmation modal */}
+      <Modal
+        opened={resolveOpened}
+        onClose={closeResolve}
+        title="Resolve Service Request"
+        centered
+      >
+        <Text>
+          Are you sure you want to mark this service request as resolved?
+        </Text>
+        <Group justify="flex-end" mt="md">
+          <Button variant="outline" color="gray" onClick={closeResolve}>
+            Cancel
+          </Button>
+          <Button
+            color="green"
+            onClick={async () => {
+              if (requestToResolve) {
+                await handleResolve(requestToResolve);
+                closeResolve();
+              }
+            }}
+          >
+            Confirm Resolve
+          </Button>
+        </Group>
       </Modal>
     </>
   );

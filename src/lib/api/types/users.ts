@@ -30,6 +30,7 @@ export interface UpdateUserRequest {
 }
 
 export interface UserFilters {
+  isActive?: boolean;
   role?: Role;
   email?: string;
   name?: string;

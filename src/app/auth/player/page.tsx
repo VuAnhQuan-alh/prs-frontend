@@ -33,7 +33,15 @@ export default function PlayerPage() {
       seatId: "",
     },
     validate: {
-      name: (value) => (!value ? "Name is required" : null),
+      // valid name is required and not spaces
+      name: (value) => {
+        const trimmedValue = value.trim();
+        return trimmedValue.length < 3
+          ? "Name must be at least 3 characters long"
+          : /^[a-zA-Z0-9]/.test(trimmedValue)
+          ? null
+          : "Name can only contain letters and numbers";
+      },
       tableId: (value) => (!value ? "Table is required" : null),
       seatId: (value) => (!value ? "Seat is required" : null),
     },
@@ -58,8 +66,8 @@ export default function PlayerPage() {
   const fetchTables = async () => {
     try {
       setLoading(true);
-      const data = await tableService.getAll();
-      setTables(data.docs);
+      const data = await tableService.getAllTablesForPlayer();
+      setTables(data);
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error
@@ -161,14 +169,18 @@ export default function PlayerPage() {
             label="Table"
             placeholder="Select table for joining"
             required
-            data={[
-              ...tables.map((table) => ({
-                value: table.id,
-                label: `${table.name} (${table.status})`,
-                disabled: table.status === TableStatus.MAINTENANCE,
-              })),
-            ]}
-            disabled={loading}
+            data={
+              loading
+                ? [{ value: "loading", label: "Loading tables..." }]
+                : [
+                    ...tables.map((table) => ({
+                      value: table.id,
+                      label: `${table.name} (${table.status})`,
+                      disabled: table.status === TableStatus.MAINTENANCE,
+                    })),
+                  ]
+            }
+            nothingFoundMessage="No tables available"
             {...form.getInputProps("tableId")}
             clearable
             mb="md"

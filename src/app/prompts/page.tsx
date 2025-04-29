@@ -21,6 +21,7 @@ import {
   Tabs,
   Card,
   TextInput,
+  Text,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { IconEdit, IconTrash, IconPlus } from "@tabler/icons-react";
@@ -33,6 +34,12 @@ export default function PromptsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
+  const [deleteOpened, { open: openDelete, close: closeDelete }] =
+    useDisclosure(false);
+  const [promptToDelete, setPromptToDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
   const [activeTab, setActiveTab] = useState<string | null>("all");
 
   const [loadingTables, setLoadingTables] = useState(true);
@@ -113,6 +120,12 @@ export default function PromptsPage() {
   // Function to handle form submission for creating/updating prompts
   const handleSubmit = async (values: CreatePromptRequest) => {
     try {
+      // Validate form before submission
+      const validationErrors = form.validate();
+      if (validationErrors.hasErrors) {
+        return; // Stop submission if there are errors
+      }
+
       if (!values.tableId) {
         values.tableId = null;
       }
@@ -163,25 +176,24 @@ export default function PromptsPage() {
   };
 
   // Handle delete prompt
-  const handleDelete = async (id: string, title: string) => {
-    if (window.confirm(`Are you sure you want to delete prompt "${title}"?`)) {
-      try {
-        await promptService.delete(id);
-        notifications.show({
-          title: "Success",
-          message: `Prompt "${title}" has been deleted`,
-          color: "green",
-        });
-        fetchPrompts();
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Failed to delete prompt";
-        notifications.show({
-          title: "Error",
-          message: errorMessage,
-          color: "red",
-        });
-      }
+  const handleDelete = async (id: string) => {
+    try {
+      await promptService.delete(id);
+      notifications.show({
+        title: "Success",
+        message: `Prompt has been deleted`,
+        color: "green",
+      });
+      fetchPrompts();
+      closeDelete();
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete prompt";
+      notifications.show({
+        title: "Error",
+        message: errorMessage,
+        color: "red",
+      });
     }
   };
 
@@ -211,7 +223,11 @@ export default function PromptsPage() {
     <>
       <Group justify="space-between" mb="lg">
         <Title order={2}>Prompts</Title>
-        <Button leftSection={<IconPlus size="1rem" />} onClick={handleCreate}>
+        <Button
+          variant="light"
+          leftSection={<IconPlus size="1rem" />}
+          onClick={handleCreate}
+        >
           Create Prompt
         </Button>
       </Group>
@@ -260,13 +276,21 @@ export default function PromptsPage() {
                     <Group>
                       <ActionIcon
                         color="blue"
+                        variant="light"
                         onClick={() => handleEdit(prompt)}
                       >
                         <IconEdit size={16} />
                       </ActionIcon>
                       <ActionIcon
                         color="red"
-                        onClick={() => handleDelete(prompt.id, prompt.title)}
+                        variant="light"
+                        onClick={() => {
+                          setPromptToDelete({
+                            id: prompt.id,
+                            title: prompt.title,
+                          });
+                          openDelete();
+                        }}
                       >
                         <IconTrash size={16} />
                       </ActionIcon>
@@ -297,7 +321,16 @@ export default function PromptsPage() {
         size="lg"
         centered
       >
-        <form onSubmit={form.onSubmit(handleSubmit)}>
+        <form
+          onSubmit={form.onSubmit(handleSubmit, (validationErrors) => {
+            console.log("Validation errors:", validationErrors);
+            notifications.show({
+              title: "Validation Error",
+              message: "Please check the form for errors",
+              color: "red",
+            });
+          })}
+        >
           <Stack>
             <TextInput
               label="Title"
@@ -383,6 +416,34 @@ export default function PromptsPage() {
           Close
         </Button>
       </Modal> */}
+
+      {/* Delete confirmation modal */}
+      <Modal
+        opened={deleteOpened}
+        onClose={closeDelete}
+        title="Delete Prompt"
+        centered
+      >
+        <Text>
+          Are you sure you want to delete the prompt{" "}
+          {promptToDelete?.title ? `"${promptToDelete.title}"` : ""}?
+        </Text>
+        <Group justify="flex-end" mt="md">
+          <Button variant="outline" color="gray" onClick={closeDelete}>
+            Cancel
+          </Button>
+          <Button
+            color="red"
+            onClick={() => {
+              if (promptToDelete?.id) {
+                handleDelete(promptToDelete.id);
+              }
+            }}
+          >
+            Confirm Delete
+          </Button>
+        </Group>
+      </Modal>
     </>
   );
 }

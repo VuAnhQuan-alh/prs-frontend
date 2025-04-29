@@ -1,6 +1,6 @@
 import { Prompt, PromptResponseOption } from "./prompts";
 import { ISession as Session } from "./sessions";
-import { Seat } from "./tables";
+import { Seat, Table } from "./tables";
 
 export interface Response {
   id: string;
@@ -16,6 +16,7 @@ export interface Response {
   responseOption?: PromptResponseOption;
   session?: Session;
   seat?: Seat;
+  table?: Table;
 }
 
 export interface CreateResponseRequest {

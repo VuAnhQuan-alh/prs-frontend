@@ -90,6 +90,13 @@ export default function TablesPage() {
   const [managers, setManagers] = useState<Manager[]>([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
 
+  // Delete confirmation modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [tableToDelete, setTableToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -124,7 +131,12 @@ export default function TablesPage() {
       adminNotes: "",
     },
     validate: {
-      name: (value) => (!value ? "Table name is required" : null),
+      name: (value) =>
+        !value
+          ? "Table name is required"
+          : value.length < 2
+          ? "Name must be at least 2 characters"
+          : null,
       capacity: (value) =>
         !value || value <= 0 ? "Capacity must be greater than 0" : null,
     },
@@ -179,14 +191,15 @@ export default function TablesPage() {
     return null;
   }, [tablePrompts, selectedTable]);
 
+  useEffect(() => {
+    fetchManagers();
+  }, []);
+
   // Fetch tables on component mount or when pagination changes
   useEffect(() => {
     fetchTables();
-    fetchManagers();
-    // Connect to WebSocket if not already connected
-    // connectWebSocket();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showArchived, currentPage, pageSize]);
+  }, [currentPage, pageSize, showArchived]);
 
   // Fetch prompts on detail
   useEffect(() => {
@@ -203,24 +216,20 @@ export default function TablesPage() {
       const response = await tableService.getAll({
         page: currentPage,
         limit: pageSize,
+        archived: showArchived,
       });
 
       // Set total tables count for pagination (assuming the API returns total count)
       setTotalTables(response.meta.totalItems);
 
-      // Filter tables based on archived status if needed
-      const filteredTables = showArchived
-        ? response.docs
-        : response.docs.filter(
-            (table) => table.status !== TableStatus.MAINTENANCE
-          );
-
-      setTables(filteredTables);
+      setTables(response.docs);
     } catch (error) {
       console.error("Failed to fetch tables:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load tables";
       notifications.show({
         title: "Error",
-        message: "Failed to load tables",
+        message: errorMessage,
         color: "red",
       });
     } finally {
@@ -237,9 +246,11 @@ export default function TablesPage() {
       setManagers(managers);
     } catch (error) {
       console.error("Failed to fetch managers:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load managers";
       notifications.show({
         title: "Error",
-        message: "Failed to load managers",
+        message: errorMessage,
         color: "red",
       });
     } finally {
@@ -254,9 +265,11 @@ export default function TablesPage() {
       setTablePrompts(prompts);
     } catch (error) {
       console.error("Failed to fetch prompts:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load prompts";
       notifications.show({
         title: "Error",
-        message: "Failed to load prompts",
+        message: errorMessage,
         color: "red",
       });
     }
@@ -272,9 +285,11 @@ export default function TablesPage() {
       setSelectedTable((table) => (table ? { ...table, promptId } : null));
     } catch (error) {
       console.error("Failed to send prompt:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to send prompt";
       notifications.show({
         title: "Error",
-        message: "Failed to send prompt",
+        message: errorMessage,
         color: "red",
       });
     }
@@ -311,53 +326,6 @@ export default function TablesPage() {
     }
   };
 
-  // New function to fetch data for a selected seat
-  // const fetchSeatDetails = async (seatId: string) => {
-  //   if (!seatId) return;
-
-  //   setLoadingDetails(true);
-  //   const seat = tableSeats.find((s) => s.id === seatId);
-  //   setSelectedSeat(seat || null);
-
-  //   try {
-  //     // Fetch service requests for this seat
-  //     const requests = await serviceRequestService.getBySeat(seatId);
-  //     setTableServiceRequests(requests || []);
-
-  //     // Fetch prompt responses for this seat
-  //     const responses = await responseService.getBySeat(seatId);
-  //     setTableResponses(responses || []);
-
-  //     // Fetch prompts shown to this seat
-  //     // Since there's no direct API to get prompts by seat,
-  //     // we can extract unique promptIds from responses
-  //     const promptIds = [...new Set(responses.map((r) => r.promptId))];
-  //     const prompts: Prompt[] = [];
-
-  //     for (const promptId of promptIds) {
-  //       try {
-  //         const prompt = await promptService.getById(promptId);
-  //         if (prompt) {
-  //           prompts.push(prompt);
-  //         }
-  //       } catch (e) {
-  //         console.error(`Failed to fetch prompt ${promptId}:`, e);
-  //       }
-  //     }
-
-  //     setTablePrompts(prompts);
-  //   } catch (error) {
-  //     console.error("Failed to fetch seat details:", error);
-  //     notifications.show({
-  //       title: "Error",
-  //       message: "Failed to load seat details",
-  //       color: "red",
-  //     });
-  //   } finally {
-  //     setLoadingDetails(false);
-  //   }
-  // };
-
   // Function to fetch service requests and response for table
   const fetchTableActivities = async (tableId: string) => {
     try {
@@ -381,11 +349,20 @@ export default function TablesPage() {
   const toggleSeatStatus = async (seat: Seat, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent the fetchSeatDetails from triggering
 
+    // if seat already session endTime is null
+    if (seat.user) {
+      notifications.show({
+        title: "Error",
+        message: "Cannot change status of an active seat",
+        color: "orange",
+      });
+      return;
+    }
+
     try {
       setLoadingDetails(true);
 
       // Toggle the status between ACTIVE and INACTIVE
-      // const newStatus = SeatStatus.ACTIVE;
       const newStatus =
         seat.status === SeatStatus.ACTIVE
           ? SeatStatus.INACTIVE
@@ -418,9 +395,11 @@ export default function TablesPage() {
       }
     } catch (error) {
       console.error("Failed to update seat status:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update seat status";
       notifications.show({
         title: "Error",
-        message: "Failed to update seat status",
+        message: errorMessage,
         color: "red",
       });
     } finally {
@@ -453,6 +432,12 @@ export default function TablesPage() {
     }
   ) => {
     try {
+      // Validate form before submission
+      const validationErrors = form.validate();
+      if (validationErrors.hasErrors) {
+        return; // Stop submission if there are errors
+      }
+
       // Set table status to AVAILABLE if a manager is assigned, otherwise leave unchanged
       if (selectedTable) {
         // Update existing table
@@ -508,9 +493,11 @@ export default function TablesPage() {
       fetchTables();
     } catch (error) {
       console.error("Failed to save table:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to save table";
       notifications.show({
         title: "Error",
-        message: "Failed to save table",
+        message: errorMessage,
         color: "red",
       });
     }
@@ -535,25 +522,36 @@ export default function TablesPage() {
     open();
   };
 
+  // Open delete confirmation modal
+  const openDeleteModal = (table: { id: string; name: string }) => {
+    setTableToDelete(table);
+    setDeleteModalOpen(true);
+  };
+
   // Handle delete table
   const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to delete table "${name}"?`)) {
-      try {
-        await tableService.delete(id);
-        notifications.show({
-          title: "Success",
-          message: `Table "${name}" has been deleted`,
-          color: "green",
-        });
-        fetchTables();
-      } catch (error) {
-        console.error("Failed to delete table:", error);
-        notifications.show({
-          title: "Error",
-          message: "Failed to delete table",
-          color: "red",
-        });
-      }
+    try {
+      await tableService.delete(id);
+      notifications.show({
+        title: "Success",
+        message: `Table "${name}" has been deleted`,
+        color: "green",
+      });
+      setDeleteModalOpen(false);
+      fetchTables();
+    } catch (error) {
+      console.error("Failed to delete table:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "An error occurred during delete. Please try again.";
+
+      notifications.show({
+        title: "Error",
+        message: errorMessage,
+        color: "red",
+      });
+      setDeleteModalOpen(false);
     }
   };
 
@@ -587,9 +585,13 @@ export default function TablesPage() {
       fetchTables();
     } catch (error) {
       console.error("Failed to update table status:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to update table status";
       notifications.show({
         title: "Error",
-        message: "Failed to update table status",
+        message: errorMessage,
         color: "red",
       });
     }
@@ -721,96 +723,111 @@ export default function TablesPage() {
                     </MantineTable.Td>
                   </MantineTable.Tr>
                 ) : (
-                  tables.map((table) => (
-                    <MantineTable.Tr
-                      key={table.id}
-                      // opacity={
-                      // table.status === TableStatus.MAINTENANCE ? 0.5 : 1
-                      // }
-                    >
-                      <MantineTable.Td>
-                        <Tooltip label={`Full ID: ${table.id}`}>
-                          <Text>{table.id.substring(0, 8)}...</Text>
-                        </Tooltip>
-                      </MantineTable.Td>
-                      <MantineTable.Td>
-                        <Button
-                          variant="subtle"
-                          onClick={() => fetchTableDetails(table.id)}
-                        >
-                          {table.name}
-                        </Button>
-                      </MantineTable.Td>
-                      <MantineTable.Td>{table.capacity}</MantineTable.Td>
-                      <MantineTable.Td>
-                        <Group gap="xs">
-                          {table.userId ? (
-                            <>
-                              <Avatar color="blue" radius="xl" size="sm">
-                                <IconUser size="0.8rem" />
-                              </Avatar>
-                              <Text size="sm">
-                                {getManagerName(table.userId)}
-                              </Text>
-                            </>
-                          ) : (
-                            <Text size="sm" c="dimmed">
-                              Unassigned
-                            </Text>
-                          )}
-                        </Group>
-                      </MantineTable.Td>
-                      <MantineTable.Td>
-                        {renderStatusBadge(table.status)}
-                      </MantineTable.Td>
-                      <MantineTable.Td>
-                        {new Date(table.createdAt).toLocaleDateString()}
-                      </MantineTable.Td>
-                      <MantineTable.Td>
-                        <Group gap="xs">
-                          <ActionIcon
-                            color="blue"
-                            onClick={() => handleEdit(table)}
-                            disabled={table.status === TableStatus.MAINTENANCE}
-                          >
-                            <IconEdit size="1rem" />
-                          </ActionIcon>
-                          <ActionIcon
-                            color="red"
-                            onClick={() => handleDelete(table.id, table.name)}
-                            disabled={
-                              table.status === TableStatus.MAINTENANCE &&
-                              !showArchived
-                            }
-                          >
-                            <IconTrash size="1rem" />
-                          </ActionIcon>
-                          <Tooltip
-                            label={
-                              table.status === TableStatus.MAINTENANCE
-                                ? "Unarchive"
-                                : "Archive"
-                            }
-                          >
-                            <ActionIcon
-                              color={
-                                table.status === TableStatus.MAINTENANCE
-                                  ? "green"
-                                  : "orange"
-                              }
-                              onClick={() => handleArchiveToggle(table)}
-                            >
-                              {table.status === TableStatus.MAINTENANCE ? (
-                                <IconRefresh size="1rem" />
-                              ) : (
-                                <IconAlertCircle size="1rem" />
-                              )}
-                            </ActionIcon>
+                  tables
+                    .filter((table) => {
+                      if (showArchived) return true;
+                      return table.status !== TableStatus.MAINTENANCE;
+                    })
+                    .map((table) => (
+                      <MantineTable.Tr
+                        key={table.id}
+                        // opacity={
+                        // table.status === TableStatus.MAINTENANCE ? 0.5 : 1
+                        // }
+                      >
+                        <MantineTable.Td>
+                          <Tooltip label={`Full ID: ${table.id}`}>
+                            <Text>{table.id.substring(0, 8)}...</Text>
                           </Tooltip>
-                        </Group>
-                      </MantineTable.Td>
-                    </MantineTable.Tr>
-                  ))
+                        </MantineTable.Td>
+                        <MantineTable.Td>
+                          <Button
+                            variant="subtle"
+                            onClick={() => fetchTableDetails(table.id)}
+                          >
+                            {table.name}
+                          </Button>
+                        </MantineTable.Td>
+                        <MantineTable.Td>{table.capacity}</MantineTable.Td>
+                        <MantineTable.Td>
+                          <Group gap="xs">
+                            {table.userId ? (
+                              <>
+                                <Avatar color="blue" radius="xl" size="sm">
+                                  <IconUser size="0.8rem" />
+                                </Avatar>
+                                <Text size="sm">
+                                  {getManagerName(table.userId)}
+                                </Text>
+                              </>
+                            ) : (
+                              <Text size="sm" c="dimmed">
+                                Unassigned
+                              </Text>
+                            )}
+                          </Group>
+                        </MantineTable.Td>
+                        <MantineTable.Td>
+                          {renderStatusBadge(table.status)}
+                        </MantineTable.Td>
+                        <MantineTable.Td>
+                          {new Date(table.createdAt).toLocaleDateString()}
+                        </MantineTable.Td>
+                        <MantineTable.Td>
+                          <Group gap="xs">
+                            <ActionIcon
+                              variant="light"
+                              color="blue"
+                              onClick={() => handleEdit(table)}
+                              disabled={
+                                table.status === TableStatus.MAINTENANCE
+                              }
+                            >
+                              <IconEdit size="1rem" />
+                            </ActionIcon>
+                            <ActionIcon
+                              variant="light"
+                              color="red"
+                              onClick={() =>
+                                openDeleteModal({
+                                  id: table.id,
+                                  name: table.name,
+                                })
+                              }
+                              disabled={
+                                table.status === TableStatus.MAINTENANCE &&
+                                !showArchived
+                              }
+                            >
+                              <IconTrash size="1rem" />
+                            </ActionIcon>
+                            <Tooltip
+                              label={
+                                table.status === TableStatus.MAINTENANCE
+                                  ? "Unarchive"
+                                  : "Archive"
+                              }
+                            >
+                              <ActionIcon
+                                variant="light"
+                                color={
+                                  table.status === TableStatus.MAINTENANCE
+                                    ? "green"
+                                    : "orange"
+                                }
+                                onClick={() => handleArchiveToggle(table)}
+                              >
+                                {table.status === TableStatus.MAINTENANCE ? (
+                                  <IconRefresh size="1rem" />
+                                ) : (
+                                  <IconAlertCircle size="1rem" />
+                                )}
+                              </ActionIcon>
+                            </Tooltip>
+                          </Group>
+                        </MantineTable.Td>
+                      </MantineTable.Tr>
+                    ))
                 )}
               </MantineTable.Tbody>
             </MantineTable>
@@ -822,7 +839,6 @@ export default function TablesPage() {
               </Text>
               <Group>
                 <Select
-                  // label="Rows per page"
                   size="xs"
                   value={String(pageSize)}
                   onChange={(value) => {
@@ -839,7 +855,6 @@ export default function TablesPage() {
                   value={currentPage}
                   onChange={(page) => {
                     setCurrentPage(page);
-                    fetchTables(); // Fetch tables when the page changes
                   }}
                   total={Math.ceil(totalTables / pageSize)}
                   size="sm"
@@ -872,7 +887,10 @@ export default function TablesPage() {
                   color="red"
                   leftSection={<IconTrash size="1rem" />}
                   onClick={() =>
-                    handleDelete(selectedTable.id, selectedTable.name)
+                    openDeleteModal({
+                      id: selectedTable.id,
+                      name: selectedTable.name,
+                    })
                   }
                 >
                   Delete
@@ -1361,6 +1379,29 @@ export default function TablesPage() {
             </Button>
           </Stack>
         </form>
+      </Modal>
+
+      {/* Delete confirmation modal */}
+      <Modal
+        opened={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Confirm Deletion"
+      >
+        <Text>Are you sure you want to delete this table?</Text>
+        <Group justify="right" mt="md">
+          <Button
+            variant="outline"
+            color="red"
+            onClick={() =>
+              tableToDelete
+                ? handleDelete(tableToDelete.id, tableToDelete.name)
+                : null
+            }
+          >
+            Delete
+          </Button>
+          <Button onClick={() => setDeleteModalOpen(false)}>Cancel</Button>
+        </Group>
       </Modal>
     </>
   );

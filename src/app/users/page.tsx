@@ -37,6 +37,7 @@ import {
 } from "@/lib/api/types/users";
 import { Role } from "@/lib/api/types/auth";
 import { userService } from "@/lib/api/services/user-service";
+import { useAccessControl } from "@/contexts/AccessControlContext";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -47,6 +48,8 @@ export default function UsersPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string | null>("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const { currentUser } = useAccessControl();
 
   const roleColors: Record<string, string> = {
     [Role.ADMIN]: "red",
@@ -91,6 +94,8 @@ export default function UsersPage() {
           ? "Password must be at least 6 characters"
           : null,
     },
+
+    mode: "controlled",
   });
 
   // Fetch users on component mount and when active tab changes
@@ -115,9 +120,11 @@ export default function UsersPage() {
       setUsers(data);
     } catch (error) {
       console.error("Failed to fetch users:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load users";
       notifications.show({
         title: "Error",
-        message: "Failed to load users",
+        message: errorMessage,
         color: "red",
       });
     } finally {
@@ -141,6 +148,12 @@ export default function UsersPage() {
   // Handle create form submit
   const handleCreateSubmit = async (values: CreateUserRequest) => {
     try {
+      // Validate form before submission
+      const validationErrors = createForm.validate();
+      if (validationErrors.hasErrors) {
+        return; // Stop submission if there are errors
+      }
+
       await userService.create(values);
       notifications.show({
         title: "Success",
@@ -152,9 +165,11 @@ export default function UsersPage() {
       fetchUsers();
     } catch (error) {
       console.error("Failed to create user:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create user";
       notifications.show({
         title: "Error",
-        message: "Failed to create user",
+        message: errorMessage,
         color: "red",
       });
     }
@@ -163,6 +178,12 @@ export default function UsersPage() {
   // Handle edit form submit
   const handleEditSubmit = async (values: UpdateUserRequest) => {
     if (!selectedUser) return;
+
+    // Validate form before submission
+    const validationErrors = editForm.validate();
+    if (validationErrors.hasErrors) {
+      return; // Stop submission if there are errors
+    }
 
     // Create a copy of the values for the API call
     const apiValues = { ...values };
@@ -184,9 +205,11 @@ export default function UsersPage() {
       fetchUsers();
     } catch (error) {
       console.error("Failed to update user:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update user";
       notifications.show({
         title: "Error",
-        message: "Failed to update user",
+        message: errorMessage,
         color: "red",
       });
     }
@@ -207,9 +230,11 @@ export default function UsersPage() {
       fetchUsers();
     } catch (error) {
       console.error("Failed to delete user:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete user";
       notifications.show({
         title: "Error",
-        message: "Failed to delete user",
+        message: errorMessage,
         color: "red",
       });
     }
@@ -240,6 +265,7 @@ export default function UsersPage() {
       <Group justify="space-between" align="center" mb="lg">
         <Title order={2}>Users Management</Title>
         <Button
+          variant="light"
           leftSection={<IconPlus size="1rem" />}
           onClick={() => setCreateModalOpen(true)}
         >
@@ -322,14 +348,21 @@ export default function UsersPage() {
                     <Table.Td>
                       <Group>
                         <ActionIcon
+                          variant="light"
                           color="blue"
                           onClick={() => openEditModal(user)}
+                          disabled={currentUser?.role !== user.role}
                         >
                           <IconEdit size="1rem" />
                         </ActionIcon>
                         <ActionIcon
+                          variant="light"
                           color="red"
                           onClick={() => openDeleteModal(user)}
+                          disabled={
+                            currentUser?.role !== user.role ||
+                            currentUser?.role !== Role.ADMIN
+                          }
                         >
                           <IconTrash size="1rem" />
                         </ActionIcon>
@@ -350,7 +383,19 @@ export default function UsersPage() {
         title="Create New User"
         size="md"
       >
-        <form onSubmit={createForm.onSubmit(handleCreateSubmit)}>
+        <form
+          onSubmit={createForm.onSubmit(
+            handleCreateSubmit,
+            (validationErrors) => {
+              console.log("Validation errors:", validationErrors);
+              notifications.show({
+                title: "Validation Error",
+                message: "Please check the form for errors",
+                color: "red",
+              });
+            }
+          )}
+        >
           <Stack align="stretch">
             <TextInput
               label="Email"
@@ -413,16 +458,27 @@ export default function UsersPage() {
         title="Edit User"
         size="md"
       >
-        <form onSubmit={editForm.onSubmit(handleEditSubmit)}>
+        <form
+          onSubmit={editForm.onSubmit(handleEditSubmit, (validationErrors) => {
+            console.log("Validation errors:", validationErrors);
+            notifications.show({
+              title: "Validation Error",
+              message: "Please check the form for errors",
+              color: "red",
+            });
+          })}
+        >
           <Stack align="stretch">
             <TextInput
               label="Email"
               placeholder="user@example.com"
+              required
               {...editForm.getInputProps("email")}
             />
             <TextInput
               label="Full Name"
               placeholder="John Doe"
+              required
               {...editForm.getInputProps("name")}
             />
             <Group grow>
@@ -450,6 +506,7 @@ export default function UsersPage() {
                 value: role,
                 label: role,
               }))}
+              required
               {...editForm.getInputProps("role")}
             />
             <Group justify="right" mt="md">

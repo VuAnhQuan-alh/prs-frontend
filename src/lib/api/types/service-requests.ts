@@ -10,14 +10,14 @@ export interface ServiceRequest {
   priority: ServiceRequestPriority;
   seatId: string;
   sessionId: string;
-  assignedUserId?: string;
+  assignId?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;
   resolvedAt?: string;
   seat?: Seat;
   session?: Session;
-  assignedUser?: AuthUser;
+  assigned?: AuthUser;
 }
 
 export enum ServiceRequestType {
@@ -54,7 +54,7 @@ export interface UpdateServiceRequestRequest {
   status?: ServiceRequestStatus;
   priority?: ServiceRequestPriority;
   description?: string;
-  assignedUserId?: string;
+  assignId?: string;
   notes?: string;
   resolvedAt?: string;
 }
@@ -65,7 +65,7 @@ export interface ServiceRequestFilters {
   priority?: ServiceRequestPriority;
   seatId?: string;
   sessionId?: string;
-  assignedUserId?: string;
+  assignId?: string;
   createdAtFrom?: string;
   createdAtTo?: string;
 }

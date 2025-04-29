@@ -373,11 +373,16 @@ export default function ReportsPage() {
               {responses.length > 0 ? (
                 responses.map((response) => (
                   <Table.Tr key={response.id}>
+                    <Table.Td>{response.table?.name || "Table 1"}</Table.Td>
                     <Table.Td>
-                      {response.seat?.table?.name || "Table 1"}
+                      {response.seat?.number
+                        ? "Seat " +
+                          String.fromCharCode(64 + response.seat.number)
+                        : "Seat A"}
                     </Table.Td>
-                    <Table.Td>{response.seat?.number || "Seat A"}</Table.Td>
-                    <Table.Td>Unknown Guest</Table.Td>
+                    <Table.Td>
+                      {response.session?.name || "Unknown Guest"}
+                    </Table.Td>
                     <Table.Td>
                       {response.type === ResponseType.YES ? (
                         <Badge color="green">{ResponseType.YES}</Badge>
@@ -390,7 +395,7 @@ export default function ReportsPage() {
                       )}
                     </Table.Td>
                     <Table.Td>
-                      {new Date(response.timestamp).toLocaleString()}
+                      {new Date(response.createdAt).toLocaleString()}
                     </Table.Td>
                   </Table.Tr>
                 ))
@@ -400,29 +405,6 @@ export default function ReportsPage() {
                     <Text>No results found</Text>
                   </Table.Td>
                 </Table.Tr>
-              )}
-              {/* Add example data to match the screenshot */}
-              {responses.length === 0 && (
-                <>
-                  <Table.Tr>
-                    <Table.Td>Table 1</Table.Td>
-                    <Table.Td>Seat A</Table.Td>
-                    <Table.Td>Unknown Guest</Table.Td>
-                    <Table.Td>
-                      <Badge color="green">YES</Badge>
-                    </Table.Td>
-                    <Table.Td>Apr 25, 2025 3:54 PM</Table.Td>
-                  </Table.Tr>
-                  <Table.Tr>
-                    <Table.Td>Table 1</Table.Td>
-                    <Table.Td>Seat B</Table.Td>
-                    <Table.Td>Unknown Guest</Table.Td>
-                    <Table.Td>
-                      <Badge color="red">NO</Badge>
-                    </Table.Td>
-                    <Table.Td>Apr 25, 2025 3:49 PM</Table.Td>
-                  </Table.Tr>
-                </>
               )}
             </Table.Tbody>
           </Table>
