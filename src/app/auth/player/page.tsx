@@ -59,7 +59,7 @@ export default function PlayerPage() {
     try {
       setLoading(true);
       const data = await tableService.getAll();
-      setTables(data);
+      setTables(data.docs);
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error

@@ -94,7 +94,7 @@ export default function ServiceRequestsPage() {
   const fetchTables = async () => {
     try {
       const data = await tableService.getAll();
-      setTables(data);
+      setTables(data.docs);
     } catch (error) {
       console.error("Failed to fetch tables:", error);
       notifications.show({

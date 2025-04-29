@@ -58,7 +58,7 @@ export default function ReportsPage() {
     const fetchTables = async () => {
       try {
         const tablesData = await tableService.getAll();
-        const tableOptions = tablesData.map((table) => ({
+        const tableOptions = tablesData.docs.map((table) => ({
           value: table.id,
           label: table.name,
         }));
