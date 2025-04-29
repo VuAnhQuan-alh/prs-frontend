@@ -94,7 +94,7 @@ export default function PromptsPage() {
     try {
       setLoadingTables(true);
       const data = await tableService.getAll();
-      setTables(data);
+      setTables(data.docs);
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error
@@ -167,6 +167,12 @@ export default function PromptsPage() {
     if (window.confirm(`Are you sure you want to delete prompt "${title}"?`)) {
       try {
         await promptService.delete(id);
+        notifications.show({
+          title: "Success",
+          message: `Prompt "${title}" has been deleted`,
+          color: "green",
+        });
+        fetchPrompts();
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : "Failed to delete prompt";

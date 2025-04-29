@@ -46,6 +46,7 @@ import {
   Avatar,
   LoadingOverlay,
   ScrollArea,
+  Pagination,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
@@ -88,6 +89,11 @@ export default function TablesPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [managers, setManagers] = useState<Manager[]>([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalTables, setTotalTables] = useState(0);
 
   // New state for table details
   const [tablePrompt, setTablePrompt] = useState<string | null>(null);
@@ -173,14 +179,14 @@ export default function TablesPage() {
     return null;
   }, [tablePrompts, selectedTable]);
 
-  // Fetch tables on component mount
+  // Fetch tables on component mount or when pagination changes
   useEffect(() => {
     fetchTables();
     fetchManagers();
     // Connect to WebSocket if not already connected
     // connectWebSocket();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [showArchived, currentPage, pageSize]);
 
   // Fetch prompts on detail
   useEffect(() => {
@@ -194,12 +200,20 @@ export default function TablesPage() {
   const fetchTables = async () => {
     try {
       setLoading(true);
-      const data = await tableService.getAll();
+      const response = await tableService.getAll({
+        page: currentPage,
+        limit: pageSize,
+      });
+
+      // Set total tables count for pagination (assuming the API returns total count)
+      setTotalTables(response.meta.totalItems);
 
       // Filter tables based on archived status if needed
       const filteredTables = showArchived
-        ? data
-        : data.filter((table) => table.status !== TableStatus.MAINTENANCE);
+        ? response.docs
+        : response.docs.filter(
+            (table) => table.status !== TableStatus.MAINTENANCE
+          );
 
       setTables(filteredTables);
     } catch (error) {
@@ -710,9 +724,9 @@ export default function TablesPage() {
                   tables.map((table) => (
                     <MantineTable.Tr
                       key={table.id}
-                      opacity={
-                        table.status === TableStatus.MAINTENANCE ? 0.5 : 1
-                      }
+                      // opacity={
+                      // table.status === TableStatus.MAINTENANCE ? 0.5 : 1
+                      // }
                     >
                       <MantineTable.Td>
                         <Tooltip label={`Full ID: ${table.id}`}>
@@ -800,6 +814,39 @@ export default function TablesPage() {
                 )}
               </MantineTable.Tbody>
             </MantineTable>
+
+            {/* Pagination controls */}
+            <Group justify="space-between" mt="md">
+              <Text size="sm" c="dimmed">
+                Showing {tables.length} of {totalTables} tables
+              </Text>
+              <Group>
+                <Select
+                  // label="Rows per page"
+                  size="xs"
+                  value={String(pageSize)}
+                  onChange={(value) => {
+                    setPageSize(Number(value));
+                    setCurrentPage(1); // Reset to first page when changing page size
+                  }}
+                  data={["5", "10", "20", "50"].map((size) => ({
+                    value: size,
+                    label: size,
+                  }))}
+                  style={{ width: 100 }}
+                />
+                <Pagination
+                  value={currentPage}
+                  onChange={(page) => {
+                    setCurrentPage(page);
+                    fetchTables(); // Fetch tables when the page changes
+                  }}
+                  total={Math.ceil(totalTables / pageSize)}
+                  size="sm"
+                  withEdges
+                />
+              </Group>
+            </Group>
           </Box>
         </Card>
       )}

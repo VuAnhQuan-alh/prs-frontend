@@ -13,8 +13,16 @@ import { seatService } from "./seat-service";
 class TableService {
   private BASE_URL = "/tables";
 
-  async getAll(filters?: TableFilters): Promise<Table[]> {
-    return await apiClient.get<Table[]>(this.BASE_URL, { params: filters });
+  async getAll(filters?: TableFilters): Promise<{
+    docs: Table[];
+    meta: {
+      page: number;
+      limit: number;
+      totalItems: number;
+      totalPages: number;
+    };
+  }> {
+    return await apiClient.get(this.BASE_URL, { params: filters });
   }
 
   async getById(id: string): Promise<Table & { prompt: Prompt | null }> {

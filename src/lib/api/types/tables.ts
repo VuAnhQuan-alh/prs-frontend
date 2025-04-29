@@ -64,6 +64,8 @@ export interface TableFilters {
   status?: TableStatus;
   locationId?: string;
   capacity?: number;
+  page?: number;
+  limit?: number;
 }
 
 export interface SeatFilters {
