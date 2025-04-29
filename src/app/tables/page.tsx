@@ -72,6 +72,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { userService } from "@/lib/api/services/user-service";
 import { Role } from "@/lib/api/types/auth";
 import { useWebSocket } from "@/lib/api/services/websocket-service";
+import { useAccessControl } from "@/contexts/AccessControlContext";
 
 interface Manager {
   id: string;
@@ -111,8 +112,9 @@ export default function TablesPage() {
   >([]);
   const [tableResponses, setTableResponses] = useState<Response[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
-  const [, setSelectedDetailTab] = useState<string>("seats");
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
+
+  const { currentUser } = useAccessControl();
 
   const form = useForm<
     CreateTableRequest & {
@@ -132,9 +134,9 @@ export default function TablesPage() {
     },
     validate: {
       name: (value) =>
-        !value
+        !value.trim()
           ? "Table name is required"
-          : value.length < 2
+          : value.trim().length < 2
           ? "Name must be at least 2 characters"
           : null,
       capacity: (value) =>
@@ -310,8 +312,6 @@ export default function TablesPage() {
       setTableServiceRequests([]);
       setTableResponses([]);
 
-      // Set selected detail tab to seats by default
-      setSelectedDetailTab("seats");
       // Reset active tab to details
       setActiveTab("details");
     } catch (error) {
@@ -613,23 +613,6 @@ export default function TablesPage() {
     }
   };
 
-  // Render seat status badge
-  // const renderSeatStatusBadge = (status: string) => {
-  //   const colorMap: Record<string, string> = {
-  //     AVAILABLE: "gray",
-  //     OCCUPIED: "green",
-  //     RESERVED: "blue",
-  //     OUT_OF_SERVICE: "orange",
-  //     INACTIVE: "red",
-  //   };
-
-  //   return (
-  //     <Badge color={colorMap[status] || "gray"} variant="filled">
-  //       {status}
-  //     </Badge>
-  //   );
-  // };
-
   return (
     <>
       <Group justify="space-between" align="center" mb="lg">
@@ -664,9 +647,11 @@ export default function TablesPage() {
           >
             Details
           </Tabs.Tab>
-          <Tabs.Tab value="admin" leftSection={<IconSettings size="1rem" />}>
-            Admin Settings
-          </Tabs.Tab>
+          {currentUser?.role === Role.ADMIN && (
+            <Tabs.Tab value="admin" leftSection={<IconSettings size="1rem" />}>
+              Admin Settings
+            </Tabs.Tab>
+          )}
         </Tabs.List>
       </Tabs>
 
@@ -795,8 +780,9 @@ export default function TablesPage() {
                                 })
                               }
                               disabled={
-                                table.status === TableStatus.MAINTENANCE &&
-                                !showArchived
+                                (table.status === TableStatus.MAINTENANCE &&
+                                  !showArchived) ||
+                                currentUser?.role !== Role.ADMIN
                               }
                             >
                               <IconTrash size="1rem" />
@@ -816,6 +802,7 @@ export default function TablesPage() {
                                     : "orange"
                                 }
                                 onClick={() => handleArchiveToggle(table)}
+                                disabled={currentUser?.role !== Role.ADMIN}
                               >
                                 {table.status === TableStatus.MAINTENANCE ? (
                                   <IconRefresh size="1rem" />

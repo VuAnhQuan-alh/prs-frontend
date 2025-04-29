@@ -351,7 +351,10 @@ export default function UsersPage() {
                           variant="light"
                           color="blue"
                           onClick={() => openEditModal(user)}
-                          disabled={currentUser?.role !== user.role}
+                          disabled={
+                            currentUser?.role !== user.role &&
+                            currentUser?.role !== Role.ADMIN
+                          }
                         >
                           <IconEdit size="1rem" />
                         </ActionIcon>
@@ -360,7 +363,7 @@ export default function UsersPage() {
                           color="red"
                           onClick={() => openDeleteModal(user)}
                           disabled={
-                            currentUser?.role !== user.role ||
+                            currentUser?.role !== user.role &&
                             currentUser?.role !== Role.ADMIN
                           }
                         >
