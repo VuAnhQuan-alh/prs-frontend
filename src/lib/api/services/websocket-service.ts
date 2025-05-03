@@ -15,7 +15,9 @@ export interface WebSocketMessage {
     | "NOTIFICATION"
     | "SESSION_UPDATE"
     | "PROMPT_UPDATED"
-    | "SEAT_UPDATE"; // Add new message type for seat updates
+    | "SEAT_UPDATE"
+    | "RESPONSE_CREATED"
+    | "SERVICE_REQUEST_CREATED";
   payload: unknown;
 }
 
@@ -51,7 +53,7 @@ export function useWebSocket() {
   const connectWebSocket = () => {
     const token =
       typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3000";
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:8000";
 
     // Close existing socket if any
     if (mainSocket) {
@@ -180,6 +182,22 @@ export function useWebSocket() {
         });
       });
 
+      socket.on("responseCreated", (data) => {
+        console.log("Received responseCreated event:", data);
+        setLastMessage(data); // data already has correct structure with type and payload
+
+        // Don't show notification for the player who submitted the response
+        // This is intended for admin notification only
+      });
+
+      socket.on("serviceRequestCreated", (data) => {
+        console.log("Received serviceRequestCreated event:", data);
+        setLastMessage(data); // data already has correct structure with type and payload
+
+        // Don't show notification for the player who submitted the request
+        // This is intended for admin notification only
+      });
+
       socket.on("connect_error", (error) => {
         console.error("Main Socket.IO connection error:", error);
         setIsConnected(false);
@@ -204,7 +222,7 @@ export function useWebSocket() {
   const connectPromptWebSocket = (tableId?: string) => {
     if (!tableId) return;
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3000";
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:8000";
 
     // Close existing socket if any
     if (promptSocket) {

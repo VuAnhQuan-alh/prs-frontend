@@ -7,6 +7,7 @@ export interface User {
   firstName?: string;
   lastName?: string;
   role: Role;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -18,6 +19,7 @@ export interface CreateUserRequest {
   lastName?: string;
   password: string;
   role?: Role;
+  isActive?: boolean;
 }
 
 export interface UpdateUserRequest {
@@ -27,6 +29,7 @@ export interface UpdateUserRequest {
   lastName?: string;
   password?: string;
   role?: Role;
+  isActive?: boolean;
 }
 
 export interface UserFilters {

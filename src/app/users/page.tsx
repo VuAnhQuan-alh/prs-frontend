@@ -18,6 +18,7 @@ import {
   LoadingOverlay,
   ActionIcon,
   Tooltip,
+  Switch,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
@@ -65,6 +66,7 @@ export default function UsersPage() {
       lastName: "",
       password: "",
       role: Role.USER,
+      isActive: true,
     },
     validate: {
       email: (value) => (/^\S+@\S+$/.test(value) ? null : "Invalid email"),
@@ -83,6 +85,7 @@ export default function UsersPage() {
       lastName: "",
       password: "",
       role: Role.USER,
+      isActive: true,
     },
     validate: {
       email: (value) =>
@@ -249,6 +252,7 @@ export default function UsersPage() {
       firstName: user.firstName || "",
       lastName: user.lastName || "",
       role: user.role,
+      isActive: user.isActive,
       // Don't set password as it shouldn't be pre-filled
     });
     setEditModalOpen(true);
@@ -269,7 +273,7 @@ export default function UsersPage() {
           leftSection={<IconPlus size="1rem" />}
           onClick={() => setCreateModalOpen(true)}
         >
-          Add User
+          Create User
         </Button>
       </Group>
 
@@ -318,8 +322,9 @@ export default function UsersPage() {
                 <Table.Th>Name</Table.Th>
                 <Table.Th>Email</Table.Th>
                 <Table.Th>Role</Table.Th>
+                <Table.Th>Active</Table.Th>
                 <Table.Th>Created</Table.Th>
-                <Table.Th>Actions</Table.Th>
+                <Table.Th ta="center">Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -343,10 +348,13 @@ export default function UsersPage() {
                       <Badge color={roleColors[user.role]}>{user.role}</Badge>
                     </Table.Td>
                     <Table.Td>
+                      <Switch checked={user.isActive} onChange={() => {}} />
+                    </Table.Td>
+                    <Table.Td>
                       {format(new Date(user.createdAt), "MMM dd, yyyy")}
                     </Table.Td>
                     <Table.Td>
-                      <Group>
+                      <Group gap="xs" justify="center">
                         <ActionIcon
                           variant="light"
                           color="blue"
@@ -441,6 +449,12 @@ export default function UsersPage() {
               }))}
               {...createForm.getInputProps("role")}
             />
+            <Switch
+              label="Is Active"
+              {...createForm.getInputProps("isActive", {
+                type: "checkbox",
+              })}
+            />
             <Group justify="right" mt="md">
               <Button
                 variant="outline"
@@ -511,6 +525,12 @@ export default function UsersPage() {
               }))}
               required
               {...editForm.getInputProps("role")}
+            />
+            <Switch
+              label="Is Active"
+              {...editForm.getInputProps("isActive", {
+                type: "checkbox",
+              })}
             />
             <Group justify="right" mt="md">
               <Button variant="outline" onClick={() => setEditModalOpen(false)}>

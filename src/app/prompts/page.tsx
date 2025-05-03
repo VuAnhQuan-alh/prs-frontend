@@ -24,7 +24,16 @@ import {
   Text,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconEdit, IconTrash, IconPlus } from "@tabler/icons-react";
+import {
+  IconEdit,
+  IconTrash,
+  IconPlus,
+  IconSearch,
+  IconList,
+  IconCircleCheck,
+  IconAlertCircle,
+  IconClock,
+} from "@tabler/icons-react";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { Table } from "@/lib/api/types/tables";
@@ -41,6 +50,7 @@ export default function PromptsPage() {
     title: string;
   } | null>(null);
   const [activeTab, setActiveTab] = useState<string | null>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [loadingTables, setLoadingTables] = useState(true);
   const [tables, setTables] = useState<Table[]>([]);
@@ -67,6 +77,17 @@ export default function PromptsPage() {
   useEffect(() => {
     if (opened) fetchTables();
   }, [opened]);
+
+  // Filter prompts based on search query
+  const filteredPrompts = prompts.filter((prompt) => {
+    if (!searchQuery) return true;
+
+    const query = searchQuery.toLowerCase();
+    return (
+      prompt.title.toLowerCase().includes(query) ||
+      prompt.content.toLowerCase().includes(query)
+    );
+  });
 
   // Function to fetch prompts from API
   const fetchPrompts = async () => {
@@ -222,7 +243,7 @@ export default function PromptsPage() {
   return (
     <>
       <Group justify="space-between" mb="lg">
-        <Title order={2}>Prompts</Title>
+        <Title order={2}>Prompts Management</Title>
         <Button
           variant="light"
           leftSection={<IconPlus size="1rem" />}
@@ -232,14 +253,40 @@ export default function PromptsPage() {
         </Button>
       </Group>
 
-      <Tabs value={activeTab} onChange={setActiveTab} mb="md">
-        <Tabs.List>
-          <Tabs.Tab value="all">All</Tabs.Tab>
-          <Tabs.Tab value={PromptStatusEnum.PROCESSED}>Processed</Tabs.Tab>
-          <Tabs.Tab value={PromptStatusEnum.PENDING}>Pending</Tabs.Tab>
-          <Tabs.Tab value={PromptStatusEnum.FAILED}>Failed</Tabs.Tab>
-        </Tabs.List>
-      </Tabs>
+      <Group justify="apart" mb="md">
+        <Tabs value={activeTab} onChange={setActiveTab}>
+          <Tabs.List>
+            <Tabs.Tab value="all" leftSection={<IconList size="0.8rem" />}>
+              All
+            </Tabs.Tab>
+            <Tabs.Tab
+              value={PromptStatusEnum.PROCESSED}
+              leftSection={<IconCircleCheck size="0.8rem" />}
+            >
+              Processed
+            </Tabs.Tab>
+            <Tabs.Tab
+              value={PromptStatusEnum.PENDING}
+              leftSection={<IconClock size="0.8rem" />}
+            >
+              Pending
+            </Tabs.Tab>
+            <Tabs.Tab
+              value={PromptStatusEnum.FAILED}
+              leftSection={<IconAlertCircle size="0.8rem" />}
+            >
+              Failed
+            </Tabs.Tab>
+          </Tabs.List>
+        </Tabs>
+
+        <TextInput
+          placeholder="Search prompts..."
+          leftSection={<IconSearch size="1rem" />}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.currentTarget.value)}
+        />
+      </Group>
 
       <Card shadow="sm" p="lg" mb="md">
         <MantineTable highlightOnHover striped>
@@ -258,14 +305,14 @@ export default function PromptsPage() {
                   Loading...
                 </MantineTable.Td>
               </MantineTable.Tr>
-            ) : prompts.length === 0 ? (
+            ) : filteredPrompts.length === 0 ? (
               <MantineTable.Tr>
                 <MantineTable.Td colSpan={5} align="center">
                   No prompts found
                 </MantineTable.Td>
               </MantineTable.Tr>
             ) : (
-              prompts.map((prompt) => (
+              filteredPrompts.map((prompt) => (
                 <MantineTable.Tr key={prompt.id}>
                   <MantineTable.Td>{prompt.title}</MantineTable.Td>
                   <MantineTable.Td>{prompt.content}</MantineTable.Td>
@@ -294,12 +341,6 @@ export default function PromptsPage() {
                       >
                         <IconTrash size={16} />
                       </ActionIcon>
-                      {/* <ActionIcon
-                      color="green"
-                      onClick={() => fetchResponseOptions(prompt.id)}
-                    >
-                      <IconListDetails size={16} />
-                    </ActionIcon> */}
                     </Group>
                   </MantineTable.Td>
                 </MantineTable.Tr>

@@ -173,7 +173,7 @@ export default function ReportsPage() {
 
   return (
     <>
-      <Title>Reports</Title>
+      <Title order={2}>Reports</Title>
 
       {/* Search Filters Section */}
       <Paper withBorder p="md" my="lg">
@@ -365,6 +365,7 @@ export default function ReportsPage() {
                 <Table.Th>Table</Table.Th>
                 <Table.Th>Seat</Table.Th>
                 <Table.Th>Guest</Table.Th>
+                <Table.Th>Prompt</Table.Th>
                 <Table.Th>Response</Table.Th>
                 <Table.Th>Timestamp</Table.Th>
               </Table.Tr>
@@ -382,6 +383,9 @@ export default function ReportsPage() {
                     </Table.Td>
                     <Table.Td>
                       {response.session?.name || "Unknown Guest"}
+                    </Table.Td>
+                    <Table.Td>
+                      {response.prompt?.title || "Unknown Prompt"}
                     </Table.Td>
                     <Table.Td>
                       {response.type === ResponseType.YES ? (

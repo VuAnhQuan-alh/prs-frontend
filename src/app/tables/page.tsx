@@ -73,6 +73,7 @@ import { userService } from "@/lib/api/services/user-service";
 import { Role } from "@/lib/api/types/auth";
 import { useWebSocket } from "@/lib/api/services/websocket-service";
 import { useAccessControl } from "@/contexts/AccessControlContext";
+import { format } from "date-fns";
 
 interface Manager {
   id: string;
@@ -179,6 +180,62 @@ export default function TablesPage() {
 
       // Refresh the tables list to update the status indicators
       fetchTables();
+    } else if (lastMessage?.type === "RESPONSE_CREATED") {
+      // Handle new response notification
+      const payload = lastMessage.payload as {
+        responseId: string;
+        tableId: string;
+        seatId: string;
+        promptId: string;
+        userName: string;
+      };
+
+      console.log("Received response notification:", payload);
+
+      // Show notification to admin
+      notifications.show({
+        title: "New Response",
+        message: `${
+          payload.userName || "A player"
+        } has submitted a response at table ${
+          tables.find((t) => t.id === payload.tableId)?.name || payload.tableId
+        }`,
+        color: "blue",
+        icon: <IconMessage size="1.1rem" />,
+        autoClose: 5000,
+      });
+
+      // If this is for the currently selected table, refresh its data
+      if (selectedTable && selectedTable.id === payload.tableId) {
+        fetchTableActivities(payload.tableId);
+      }
+    } else if (lastMessage?.type === "SERVICE_REQUEST_CREATED") {
+      // Handle new service request notification
+      const payload = lastMessage.payload as {
+        serviceRequestId: string;
+        tableId: string;
+        seatId: string;
+        type: string;
+        userName: string;
+      };
+
+      console.log("Received service request notification:", payload);
+
+      // Show notification to admin with higher priority
+      notifications.show({
+        title: `New ${payload.type} Request`,
+        message: `${payload.userName || "A player"} needs assistance at table ${
+          tables.find((t) => t.id === payload.tableId)?.name || payload.tableId
+        }`,
+        color: "red",
+        icon: <IconBell size="1.1rem" />,
+        autoClose: false,
+      });
+
+      // If this is for the currently selected table, refresh its data
+      if (selectedTable && selectedTable.id === payload.tableId) {
+        fetchTableActivities(payload.tableId);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastMessage]);
@@ -616,7 +673,7 @@ export default function TablesPage() {
   return (
     <>
       <Group justify="space-between" align="center" mb="lg">
-        <Title order={2}>Tables</Title>
+        <Title order={2}>Tables Management</Title>
         <Group>
           <Button
             variant="outline"
@@ -686,12 +743,12 @@ export default function TablesPage() {
               <MantineTable.Thead>
                 <MantineTable.Tr>
                   <MantineTable.Th>ID</MantineTable.Th>
-                  <MantineTable.Th>Name</MantineTable.Th>
+                  <MantineTable.Th ta="center">Name</MantineTable.Th>
                   <MantineTable.Th>Capacity</MantineTable.Th>
                   <MantineTable.Th>Assigned To</MantineTable.Th>
                   <MantineTable.Th>Status</MantineTable.Th>
                   <MantineTable.Th>Created</MantineTable.Th>
-                  <MantineTable.Th>Actions</MantineTable.Th>
+                  <MantineTable.Th ta="center">Actions</MantineTable.Th>
                 </MantineTable.Tr>
               </MantineTable.Thead>
               <MantineTable.Tbody>
@@ -714,18 +771,13 @@ export default function TablesPage() {
                       return table.status !== TableStatus.MAINTENANCE;
                     })
                     .map((table) => (
-                      <MantineTable.Tr
-                        key={table.id}
-                        // opacity={
-                        // table.status === TableStatus.MAINTENANCE ? 0.5 : 1
-                        // }
-                      >
+                      <MantineTable.Tr key={table.id}>
                         <MantineTable.Td>
                           <Tooltip label={`Full ID: ${table.id}`}>
                             <Text>{table.id.substring(0, 8)}...</Text>
                           </Tooltip>
                         </MantineTable.Td>
-                        <MantineTable.Td>
+                        <MantineTable.Td ta="center">
                           <Button
                             variant="subtle"
                             onClick={() => fetchTableDetails(table.id)}
@@ -756,10 +808,10 @@ export default function TablesPage() {
                           {renderStatusBadge(table.status)}
                         </MantineTable.Td>
                         <MantineTable.Td>
-                          {new Date(table.createdAt).toLocaleDateString()}
+                          {format(new Date(table.createdAt), "MMM dd, yyyy")}
                         </MantineTable.Td>
                         <MantineTable.Td>
-                          <Group gap="xs">
+                          <Group gap="xs" justify="center">
                             <ActionIcon
                               variant="light"
                               color="blue"
@@ -1186,8 +1238,9 @@ export default function TablesPage() {
                                 <Badge
                                   color={
                                     request.status === ServiceRequestStatus.OPEN
-                                      ? "blue"
-                                      : request.status === "IN_PROGRESS"
+                                      ? "red"
+                                      : request.status ===
+                                        ServiceRequestStatus.IN_PROGRESS
                                       ? "yellow"
                                       : request.status ===
                                         ServiceRequestStatus.RESOLVED
@@ -1241,7 +1294,7 @@ export default function TablesPage() {
                                     : "Unknown"}
                                 </Badge>
                                 <Text fw={500}>
-                                  {prompt ? prompt.content : "Unknown Prompt"}
+                                  {prompt ? prompt.title : "Unknown Prompt"}
                                 </Text>
                               </Group>
                               <Text size="xs" c="dimmed">
