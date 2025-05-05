@@ -45,7 +45,6 @@ import {
   Checkbox,
   Avatar,
   LoadingOverlay,
-  ScrollArea,
   Pagination,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
@@ -114,6 +113,10 @@ export default function TablesPage() {
   const [tableResponses, setTableResponses] = useState<Response[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
+
+  const [tableMessageOpen, setTableMessageOpen] = useState(false);
+  const [tableMessage, setTableMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   const { currentUser } = useAccessControl();
 
@@ -462,6 +465,58 @@ export default function TablesPage() {
     } finally {
       setLoadingDetails(false);
     }
+  };
+
+  // Function to handle sending a message to a table
+  const handleSendTableMessage = async () => {
+    if (!selectedTable || !tableMessage.trim()) {
+      return;
+    }
+
+    try {
+      setSendingMessage(true);
+
+      const response = await tableService.sendMessage(
+        selectedTable.id,
+        tableMessage
+      );
+
+      notifications.show({
+        title: "Success",
+        message: response.message || "Message sent successfully",
+        color: "green",
+      });
+
+      // Close the modal and reset the message
+      setTableMessageOpen(false);
+      setTableMessage("");
+    } catch (error) {
+      console.error("Failed to send table message:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to send message";
+      notifications.show({
+        title: "Error",
+        message: errorMessage,
+        color: "red",
+      });
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  // Function to open the table message modal
+  const openTableMessageModal = () => {
+    if (!selectedTable) {
+      notifications.show({
+        title: "Error",
+        message: "Please select a table first",
+        color: "red",
+      });
+      return;
+    }
+
+    setTableMessage("");
+    setTableMessageOpen(true);
   };
 
   // Function to render table status badge
@@ -1115,6 +1170,7 @@ export default function TablesPage() {
                     styles={{
                       inner: { justifyContent: "flex-start" },
                     }}
+                    onClick={openTableMessageModal}
                   >
                     Send Table Message
                   </Button>
@@ -1253,7 +1309,10 @@ export default function TablesPage() {
                               </MantineTable.Td>
 
                               <MantineTable.Td>
-                                {new Date(request.createdAt).toLocaleString()}
+                                {format(
+                                  new Date(request.createdAt),
+                                  "MMM dd, yyyy h:mm a"
+                                )}
                               </MantineTable.Td>
                               <MantineTable.Td>
                                 <Text size="sm" lineClamp={2}>
@@ -1274,37 +1333,69 @@ export default function TablesPage() {
                       No responses available for this table
                     </Text>
                   ) : (
-                    <ScrollArea h={400}>
-                      {tableResponses.map((response) => {
-                        const seat = tableSeats.find(
-                          (s) => s.id === response.seatId
-                        );
-                        const prompt = tablePrompts.find(
-                          (p) => p.id === response.promptId
-                        );
+                    <MantineTable highlightOnHover striped>
+                      <MantineTable.Thead>
+                        <MantineTable.Tr>
+                          <MantineTable.Th>Guest Name</MantineTable.Th>
+                          <MantineTable.Th>Prompt Question</MantineTable.Th>
+                          <MantineTable.Th>Response</MantineTable.Th>
+                          <MantineTable.Th>Seat</MantineTable.Th>
+                          <MantineTable.Th>Time</MantineTable.Th>
+                          <MantineTable.Th>Actions</MantineTable.Th>
+                        </MantineTable.Tr>
+                      </MantineTable.Thead>
+                      <MantineTable.Tbody>
+                        {tableResponses.map((response) => {
+                          const seat = tableSeats.find(
+                            (s) => s.id === response.seatId
+                          );
+                          const prompt = tablePrompts.find(
+                            (p) => p.id === response.promptId
+                          );
+                          const guestName = response.session?.name || "user";
 
-                        return (
-                          <Card key={response.id} withBorder mb="sm">
-                            <Group justify="space-between">
-                              <Group>
-                                <Badge>
-                                  Seat{" "}
-                                  {seat
-                                    ? String.fromCharCode(64 + seat.number)
-                                    : "Unknown"}
-                                </Badge>
-                                <Text fw={500}>
-                                  {prompt ? prompt.title : "Unknown Prompt"}
-                                </Text>
-                              </Group>
-                              <Text size="xs" c="dimmed">
-                                {new Date(response.createdAt).toLocaleString()}
-                              </Text>
-                            </Group>
-                          </Card>
-                        );
-                      })}
-                    </ScrollArea>
+                          return (
+                            <MantineTable.Tr key={response.id}>
+                              <MantineTable.Td>{guestName}</MantineTable.Td>
+                              <MantineTable.Td>
+                                {prompt?.title ||
+                                  "Would you like to be the player-dealer for the next round?"}
+                              </MantineTable.Td>
+                              <MantineTable.Td>
+                                {response.type === "YES_RESPONSE" ? (
+                                  <Badge color="green">YES</Badge>
+                                ) : response.type === "NO_RESPONSE" ? (
+                                  <Badge color="red">NO</Badge>
+                                ) : (
+                                  <Badge color="yellow">SERVICE</Badge>
+                                )}
+                              </MantineTable.Td>
+                              <MantineTable.Td>
+                                {seat
+                                  ? String.fromCharCode(64 + seat.number)
+                                  : "A"}
+                              </MantineTable.Td>
+                              <MantineTable.Td>
+                                {format(
+                                  new Date(response.createdAt),
+                                  "MMM dd, yyyy h:mm a"
+                                )}
+                              </MantineTable.Td>
+                              <MantineTable.Td>
+                                <ActionIcon
+                                  variant="light"
+                                  color="red"
+                                  size="sm"
+                                  title="Delete"
+                                >
+                                  <IconTrash size="1rem" />
+                                </ActionIcon>
+                              </MantineTable.Td>
+                            </MantineTable.Tr>
+                          );
+                        })}
+                      </MantineTable.Tbody>
+                    </MantineTable>
                   )}
                 </Tabs.Panel>
               </Tabs>
@@ -1442,6 +1533,48 @@ export default function TablesPage() {
           </Button>
           <Button onClick={() => setDeleteModalOpen(false)}>Cancel</Button>
         </Group>
+      </Modal>
+
+      {/* Table Message Modal */}
+      <Modal
+        opened={tableMessageOpen}
+        onClose={() => setTableMessageOpen(false)}
+        title={`Send Message to ${
+          selectedTable ? selectedTable.name : "Table"
+        }`}
+        centered
+      >
+        <Stack>
+          <Text size="sm">
+            Enter a message to send to all players at this table:
+          </Text>
+          <TextInput
+            placeholder="Type your message here..."
+            value={tableMessage}
+            onChange={(e) => setTableMessage(e.target.value)}
+            required
+            maxLength={500}
+            data-autofocus
+          />
+          <Text size="xs" c="dimmed">
+            Message will be sent as a notification to all players at this table.
+          </Text>
+          <Group justify="right" mt="md">
+            <Button
+              variant="outline"
+              onClick={() => setTableMessageOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              loading={sendingMessage}
+              disabled={!tableMessage.trim()}
+              onClick={handleSendTableMessage}
+            >
+              Send
+            </Button>
+          </Group>
+        </Stack>
       </Modal>
     </>
   );

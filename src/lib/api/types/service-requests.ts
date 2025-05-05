@@ -51,11 +51,11 @@ export interface CreateServiceRequestRequest {
 }
 
 export interface UpdateServiceRequestRequest {
-  status?: ServiceRequestStatus;
+  status?: ServiceRequestStatus | null;
   priority?: ServiceRequestPriority;
   description?: string;
-  assignId?: string;
-  notes?: string;
+  assignId?: string | null;
+  notes?: string | null;
   resolvedAt?: string;
 }
 

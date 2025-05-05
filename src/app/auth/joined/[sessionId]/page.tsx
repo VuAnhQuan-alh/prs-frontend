@@ -25,9 +25,11 @@ import {
   Paper,
   Text,
   Title,
+  Timeline,
+  ScrollArea,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconBell, IconRefresh } from "@tabler/icons-react";
+import { IconBell, IconRefresh, IconMessage } from "@tabler/icons-react";
 import { IconLogout } from "@/components/icons";
 import { ResponseType } from "@/lib/api/types/responses";
 
@@ -36,6 +38,14 @@ type ResponseOption = ResponseType;
 type ISessionPlayer = ISession & {
   seat: Seat & { table: Table };
 };
+
+// Interface for table messages
+interface TableMessage {
+  tableId: string;
+  tableName: string;
+  message: string;
+  timestamp: Date;
+}
 
 export default function UserPlayerPage({
   params,
@@ -53,6 +63,9 @@ export default function UserPlayerPage({
   const [realtimeStatus, setRealtimeStatus] = useState<
     "disconnected" | "connecting" | "connected"
   >("connecting");
+  // Add state for table messages
+  const [tableMessages, setTableMessages] = useState<TableMessage[]>([]);
+  const [showMessageHistory, setShowMessageHistory] = useState(false);
 
   // WebSocket hook
   const {
@@ -72,39 +85,69 @@ export default function UserPlayerPage({
   // Listen for prompt updates from WebSocket
   useEffect(() => {
     if (!sessions?.seat?.table?.id) return;
-    console.log("Listening for prompt updates...");
+    console.log("Listening for message updates...");
 
-    if (lastMessage && lastMessage.type === "PROMPT_UPDATED") {
-      // Handle prompt update
-      const payload = lastMessage.payload as {
-        tableId: string;
-        prompt: Prompt | null;
-      };
+    if (lastMessage) {
+      console.log("Received message:", lastMessage);
+      if (lastMessage.type === "PROMPT_UPDATED") {
+        // Handle prompt update
+        const payload = lastMessage.payload as {
+          tableId: string;
+          prompt: Prompt | null;
+        };
 
-      // Only update if this update is for our table
-      if (sessions.seat.table.id === payload.tableId) {
-        // Reset player response state
-        setSelectedResponse(null);
-        setHasResponded(false);
+        // Only update if this update is for our table
+        if (sessions.seat.table.id === payload.tableId) {
+          // Reset player response state
+          setSelectedResponse(null);
+          setHasResponded(false);
 
-        // Update current prompt
-        if (payload.prompt) {
-          setCurrentPrompt(payload.prompt);
+          // Update current prompt
+          if (payload.prompt) {
+            setCurrentPrompt(payload.prompt);
 
-          // Show notification to player about new prompt
+            // Show notification to player about new prompt
+            notifications.show({
+              title: "New Prompt Available",
+              message:
+                "A new prompt has been assigned to your table. Please respond to it.",
+              color: "blue",
+            });
+          } else {
+            // Handle case where prompt was deleted/removed
+            setCurrentPrompt(null);
+            notifications.show({
+              title: "Prompt Removed",
+              message: "The current prompt has been removed.",
+              color: "blue",
+            });
+          }
+        }
+      } else if (lastMessage.type === "TABLE_MESSAGE") {
+        // Handle table message notifications
+        console.log("Received table message:", lastMessage);
+        const payload = lastMessage.payload as TableMessage;
+
+        // Only handle messages for this player's table
+        if (sessions.seat.table.id === payload.tableId) {
+          // Add message to our history
+          setTableMessages((prevMessages) => [
+            {
+              tableId: payload.tableId,
+              tableName: payload.tableName,
+              message: payload.message,
+              timestamp: new Date(payload.timestamp),
+            },
+            ...prevMessages,
+          ]);
+
+          // Show notification with high visibility
           notifications.show({
-            title: "New Prompt Available",
-            message:
-              "A new prompt has been assigned to your table. Please respond to it.",
+            title: `Message from Table ${payload.tableName}`,
+            message: payload.message,
             color: "blue",
-          });
-        } else {
-          // Handle case where prompt was deleted/removed
-          setCurrentPrompt(null);
-          notifications.show({
-            title: "Prompt Removed",
-            message: "The current prompt has been removed.",
-            color: "blue",
+            icon: <IconMessage size="1.1rem" />,
+            autoClose: 10000, // Stay visible longer (10 seconds)
           });
         }
       }
@@ -483,6 +526,61 @@ export default function UserPlayerPage({
             >
               Thank you for your response! Please wait for the next prompt.
             </Text>
+          )}
+        </Card>
+
+        {/* Table Messages Card */}
+        <Card p="lg" radius="xl" bg="white" mt="md">
+          <Group justify="space-between" mb="md">
+            <Title order={3}>Table Messages</Title>
+            <Button
+              variant="subtle"
+              size="sm"
+              onClick={() => setShowMessageHistory(!showMessageHistory)}
+            >
+              {showMessageHistory ? "Hide History" : "Show History"}
+            </Button>
+          </Group>
+
+          {tableMessages.length === 0 ? (
+            <Text c="dimmed" ta="center">
+              No messages from table administrator yet
+            </Text>
+          ) : (
+            <>
+              {/* Always show the most recent message */}
+              <Paper
+                p="md"
+                withBorder
+                style={{ borderLeft: "4px solid #228ED0" }}
+              >
+                <Text size="sm" fw={500} mb={5}>
+                  {new Date(tableMessages[0].timestamp).toLocaleString()}
+                </Text>
+                <Text>{tableMessages[0].message}</Text>
+              </Paper>
+
+              {/* Show message history if expanded */}
+              {showMessageHistory && tableMessages.length > 1 && (
+                <ScrollArea mt="lg" h={300} offsetScrollbars>
+                  <Timeline
+                    active={tableMessages.length - 1}
+                    bulletSize={24}
+                    lineWidth={2}
+                  >
+                    {tableMessages.slice(1).map((msg, index) => (
+                      <Timeline.Item
+                        key={index}
+                        title={new Date(msg.timestamp).toLocaleString()}
+                        bullet={<IconMessage size={12} />}
+                      >
+                        <Text size="sm">{msg.message}</Text>
+                      </Timeline.Item>
+                    ))}
+                  </Timeline>
+                </ScrollArea>
+              )}
+            </>
           )}
         </Card>
       </Container>

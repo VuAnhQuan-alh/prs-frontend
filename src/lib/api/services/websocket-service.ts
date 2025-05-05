@@ -17,7 +17,8 @@ export interface WebSocketMessage {
     | "PROMPT_UPDATED"
     | "SEAT_UPDATE"
     | "RESPONSE_CREATED"
-    | "SERVICE_REQUEST_CREATED";
+    | "SERVICE_REQUEST_CREATED"
+    | "TABLE_MESSAGE"; // Fix: use lowercase to match the event name
   payload: unknown;
 }
 
@@ -37,6 +38,14 @@ export interface SeatUpdatePayload {
   userName?: string | null;
   type: "JOINED" | "LEFT";
   message: string;
+}
+
+// Define table message payload type
+export interface TableMessagePayload {
+  tableId: string;
+  tableName: string;
+  message: string;
+  timestamp: string | Date;
 }
 
 // Custom hook for using WebSocket
@@ -250,6 +259,11 @@ export function useWebSocket() {
           clearTimeout(promptSocketReconnectRef.current);
           promptSocketReconnectRef.current = null;
         }
+      });
+
+      socket.on("tableMessage", (data) => {
+        console.log("Received tableMessage event:", data);
+        setLastMessage(data);
       });
 
       socket.on("promptUpdated", (data) => {

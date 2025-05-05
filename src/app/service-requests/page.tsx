@@ -250,7 +250,11 @@ export default function ServiceRequestsPage() {
     }
 
     try {
-      await serviceRequestService.update(selectedRequest.id, values);
+      await serviceRequestService.update(selectedRequest.id, {
+        status: values.status ? values.status : null,
+        assignId: values.assignId ? values.assignId : null,
+        notes: values.notes ? values.notes : null,
+      });
       notifications.show({
         title: "Success",
         message: "Service request has been updated",

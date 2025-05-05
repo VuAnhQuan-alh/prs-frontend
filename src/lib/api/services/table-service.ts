@@ -62,6 +62,22 @@ class TableService {
   }
 
   /**
+   * Send a message to a table
+   * @param tableId - Table ID
+   * @param message - Message to send
+   * @returns Success response
+   */
+  async sendMessage(
+    tableId: string,
+    message: string
+  ): Promise<{ success: boolean; message: string }> {
+    return await apiClient.post<{ success: boolean; message: string }>(
+      `${this.BASE_URL}/${tableId}/messages`,
+      { message }
+    );
+  }
+
+  /**
    * Create a table with seats
    * @param tableData - Table data
    * @param seatCount - Number of seats to create for the table

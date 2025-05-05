@@ -389,13 +389,11 @@ export default function ReportsPage() {
                     </Table.Td>
                     <Table.Td>
                       {response.type === ResponseType.YES ? (
-                        <Badge color="green">{ResponseType.YES}</Badge>
+                        <Badge color="green">YES</Badge>
                       ) : response.type === ResponseType.NO ? (
-                        <Badge color="red">{ResponseType.NO}</Badge>
+                        <Badge color="red">NO</Badge>
                       ) : (
-                        <Badge color="orange">
-                          {ResponseType.SERVICE_REQUEST}
-                        </Badge>
+                        <Badge color="yellow">SERVICE</Badge>
                       )}
                     </Table.Td>
                     <Table.Td>
