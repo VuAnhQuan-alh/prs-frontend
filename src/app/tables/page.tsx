@@ -147,6 +147,19 @@ export default function TablesPage() {
         !value || value <= 0 ? "Capacity must be greater than 0" : null,
     },
   });
+  const watchUserId = form.getInputProps("userId").value;
+
+  // update stable status active when userId is assigned
+  useEffect(() => {
+    if (!selectedTable) return;
+
+    if (watchUserId) {
+      form.setFieldValue("status", TableStatus.ACTIVE);
+    } else {
+      form.setFieldValue("status", TableStatus.INACTIVE);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchUserId, selectedTable]);
 
   // WebSocket hook
   const { lastMessage, isConnected } = useWebSocket();
@@ -1430,6 +1443,9 @@ export default function TablesPage() {
                   label="Capacity"
                   placeholder="Enter seating capacity"
                   required
+                  readOnly={
+                    !!selectedTable && selectedTable.status !== "INACTIVE"
+                  }
                   min={1}
                   {...form.getInputProps("capacity")}
                 />

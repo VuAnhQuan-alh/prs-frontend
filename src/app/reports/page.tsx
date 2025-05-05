@@ -23,10 +23,12 @@ import {
 import {
   responseService,
   tableService,
+  userService,
   // serviceRequestService,
 } from "@/lib/api/services";
 import { Response, ResponseType } from "@/lib/api/types/responses";
 import { notifications } from "@mantine/notifications";
+import { Role } from "@/lib/api/types/auth";
 
 interface ReportSearchParams {
   tableId?: string;
@@ -48,12 +50,17 @@ export default function ReportsPage() {
   const [timeFrom, setTimeFrom] = useState("");
   const [timeTo, setTimeTo] = useState("");
 
+  // State for user role
+  const [userRole, setUserRole] = useState<{ value: string; label: string }[]>(
+    []
+  );
+
   // State for search results
   const [responses, setResponses] = useState<Response[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  // Fetch tables on component mount
+  // Fetch tables and user role table on component mount
   useEffect(() => {
     const fetchTables = async () => {
       try {
@@ -73,6 +80,26 @@ export default function ReportsPage() {
       }
     };
 
+    const fetchAdminTables = async () => {
+      try {
+        const userTable = await userService.getAll({ role: Role.TABLE });
+        setUserRole(
+          userTable.map((user) => ({
+            value: user.id,
+            label: user.name,
+          }))
+        );
+      } catch (error) {
+        console.error("Error fetching admin tables:", error);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load admin tables",
+          color: "red",
+        });
+      }
+    };
+
+    fetchAdminTables();
     fetchTables();
   }, []);
 
@@ -271,11 +298,7 @@ export default function ReportsPage() {
           <Select
             label="Table Admin"
             placeholder="Select admin"
-            data={[
-              { value: "", label: "Any Admin" },
-              { value: "admin1", label: "Admin 1" },
-              { value: "admin2", label: "Admin 2" },
-            ]}
+            data={userRole}
             value={searchParams.tableAdmin || ""}
             onChange={(value) =>
               setSearchParams((prev) => ({

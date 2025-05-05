@@ -61,7 +61,7 @@ function StatsCard({ title, value, icon, description, diff }: StatsCardProps) {
       </Title>
 
       {description && (
-        <Group align="center" gap="xs" pos="absolute" bottom="md" left="md">
+        <Group align="center" gap="xs">
           {diff && (
             <ThemeIcon
               color={diff > 0 ? "green" : "red"}
@@ -85,7 +85,6 @@ function StatsCard({ title, value, icon, description, diff }: StatsCardProps) {
                 : "dimmed"
             }
             fz="xs"
-            fw={500}
           >
             {diff ? `${Math.abs(diff)}%` : ""} {description}
           </Text>
@@ -200,7 +199,11 @@ export default function Dashboard() {
       </Title>
 
       {/* Stats Cards */}
-      <SimpleGrid cols={{ base: 1, sm: 2, md: 5 }} mb={30} spacing="md">
+      <SimpleGrid
+        cols={{ base: 1, sm: 2, md: 3, lg: 3, xl: 5 }}
+        mb={30}
+        spacing="md"
+      >
         <StatsCard
           title="ACTIVE USERS"
           value={stats ? stats.activeSessions.count.toString() : "0"}
