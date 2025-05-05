@@ -14,12 +14,7 @@ import {
   rem,
 } from "@mantine/core";
 import { DatePickerInput, TimeInput } from "@mantine/dates";
-import {
-  IconFilter,
-  IconDownload,
-  IconPrinter,
-  IconClock,
-} from "@tabler/icons-react";
+import { IconFilter, IconDownload, IconClock } from "@tabler/icons-react";
 import {
   responseService,
   tableService,
@@ -32,21 +27,22 @@ import { Role } from "@/lib/api/types/auth";
 
 interface ReportSearchParams {
   tableId?: string;
-  seatCode?: string;
-  activity?: string;
-  playerDealerStatus?: string;
-  gameType?: string;
-  tableAdmin?: string;
-  date?: string;
+  seatNumber?: string;
+  promptId?: string;
+  sessionId?: string;
+  type?: string;
+  startDate?: string;
+  endDate?: string;
   timeFrom?: string;
   timeTo?: string;
+  tableAdmin?: string;
 }
 
 export default function ReportsPage() {
   // State for search filters
   const [searchParams, setSearchParams] = useState<ReportSearchParams>({});
   const [tables, setTables] = useState<{ value: string; label: string }[]>([]);
-  const [date, setDate] = useState<Date | null>(null);
+  const [date, setDate] = useState<[Date | null, Date | null]>([null, null]);
   const [timeFrom, setTimeFrom] = useState("");
   const [timeTo, setTimeTo] = useState("");
 
@@ -59,6 +55,14 @@ export default function ReportsPage() {
   const [responses, setResponses] = useState<Response[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+
+  // State for response types dropdown
+  const [responseTypes] = useState([
+    { value: "", label: "All Types" },
+    { value: ResponseType.YES, label: "YES" },
+    { value: ResponseType.NO, label: "NO" },
+    { value: ResponseType.SERVICE_REQUEST, label: "SERVICE" },
+  ]);
 
   // Fetch tables and user role table on component mount
   useEffect(() => {
@@ -108,33 +112,40 @@ export default function ReportsPage() {
     try {
       setLoading(true);
 
-      // Prepare filters
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const filters: any = { ...searchParams };
+      // Create a copy of the search parameters
+      const filters: ReportSearchParams = { ...searchParams };
 
-      // Add date and time if provided
-      if (date) {
-        const dateStr = date.toISOString().split("T")[0];
-        filters.date = dateStr;
+      // Format the date for the API request
+      if (date[0] && date[1]) {
+        const startDateStr = date[0].toISOString().split("T")[0];
+        const endDateStr = date[1].toISOString().split("T")[0];
+        filters.startDate = startDateStr;
+        filters.endDate = endDateStr;
       }
 
+      // Format time values for the API request
       if (timeFrom) {
-        const hours = new Date(timeFrom).getHours().toString().padStart(2, "0");
-        const minutes = new Date(timeFrom)
-          .getMinutes()
-          .toString()
-          .padStart(2, "0");
-        filters.timeFrom = `${hours}:${minutes}`;
+        filters.timeFrom = timeFrom;
+        // const timeFromObj = new Date(timeFrom);
+        // const hours = timeFromObj.getHours().toString().padStart(2, "0");
+        // const minutes = timeFromObj.getMinutes().toString().padStart(2, "0");
+        // filters.timeFrom = `${hours}:${minutes}`;
       }
 
       if (timeTo) {
-        const hours = new Date(timeTo).getHours().toString().padStart(2, "0");
-        const minutes = new Date(timeTo)
-          .getMinutes()
-          .toString()
-          .padStart(2, "0");
-        filters.timeTo = `${hours}:${minutes}`;
+        filters.timeTo = timeTo;
+        // const timeToObj = new Date(timeTo);
+        // const hours = timeToObj.getHours().toString().padStart(2, "0");
+        // const minutes = timeToObj.getMinutes().toString().padStart(2, "0");
+        // filters.timeTo = `${hours}:${minutes}`;
       }
+
+      // Clean up empty filters
+      Object.keys(filters).forEach((key) => {
+        if (!filters[key as keyof ReportSearchParams]) {
+          delete filters[key as keyof ReportSearchParams];
+        }
+      });
 
       // Fetch responses based on filters
       const responsesData = await responseService.getAll(filters);
@@ -155,9 +166,10 @@ export default function ReportsPage() {
   // Handle reset filters
   const handleReset = () => {
     setSearchParams({});
-    setDate(null);
+    setDate([null, null]);
     setTimeFrom("");
     setTimeTo("");
+    setSearched(false);
   };
 
   // Handle export CSV
@@ -165,14 +177,24 @@ export default function ReportsPage() {
     if (responses.length === 0) return;
 
     // Prepare CSV content
-    const headers = ["Table", "Seat", "Guest", "Response", "Timestamp"];
+    const headers = [
+      "Table",
+      "Seat",
+      "Guest",
+      "Prompt",
+      "Response",
+      "Timestamp",
+    ];
     const csvContent = responses.map((response) => {
       return [
-        response.seat?.table?.name || "-",
-        response.seat?.number || "-",
-        "Unknown Guest", // Guest info would come from your actual data model
+        response.table?.name || "-",
+        response.seat?.number
+          ? "Seat " + String.fromCharCode(64 + response.seat.number)
+          : "-",
+        response.session?.name || "Unknown Guest",
+        response.prompt?.title || "Unknown Prompt",
         response.type || "-",
-        new Date(response.timestamp).toLocaleString(),
+        new Date(response.createdAt).toLocaleString(),
       ].join(",");
     });
 
@@ -193,11 +215,6 @@ export default function ReportsPage() {
     document.body.removeChild(link);
   };
 
-  // Handle print
-  const handlePrint = () => {
-    window.print();
-  };
-
   return (
     <>
       <Title order={2}>Reports</Title>
@@ -212,7 +229,7 @@ export default function ReportsPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
+            gridTemplateColumns: "1fr 1fr 1fr 1fr",
             gap: "16px",
             marginBottom: "16px",
           }}
@@ -232,67 +249,29 @@ export default function ReportsPage() {
           />
 
           <TextInput
-            label="Seat Code"
-            placeholder="e.g., A, B, C"
-            value={searchParams.seatCode || ""}
+            label="Seat Number"
+            placeholder="e.g., 1, 2, 3"
+            value={searchParams.seatNumber || ""}
             onChange={(e) =>
               setSearchParams((prev) => ({
                 ...prev,
-                seatCode: e.target.value || undefined,
+                seatNumber: e.target.value || undefined,
               }))
             }
           />
 
           <Select
-            label="Activity"
-            placeholder="Select activity"
-            data={[
-              { value: "", label: "Service Requests" },
-              { value: "responses", label: "Responses" },
-              { value: "prompts", label: "Prompts" },
-            ]}
-            value={searchParams.activity || ""}
+            label="Response Type"
+            placeholder="Select type"
+            data={responseTypes}
+            value={searchParams.type || ""}
             onChange={(value) =>
               setSearchParams((prev) => ({
                 ...prev,
-                activity: value || undefined,
+                type: value || undefined,
               }))
             }
-          />
-
-          <Select
-            label="Player-Dealer Status"
-            placeholder="Select status"
-            data={[
-              { value: "", label: "Any Status" },
-              { value: "player", label: "Player" },
-              { value: "dealer", label: "Dealer" },
-            ]}
-            value={searchParams.playerDealerStatus || ""}
-            onChange={(value) =>
-              setSearchParams((prev) => ({
-                ...prev,
-                playerDealerStatus: value || undefined,
-              }))
-            }
-          />
-
-          <Select
-            label="Game Type"
-            placeholder="Select game"
-            data={[
-              { value: "", label: "All Games" },
-              { value: "blackjack", label: "Blackjack" },
-              { value: "poker", label: "Poker" },
-              { value: "roulette", label: "Roulette" },
-            ]}
-            value={searchParams.gameType || ""}
-            onChange={(value) =>
-              setSearchParams((prev) => ({
-                ...prev,
-                gameType: value || undefined,
-              }))
-            }
+            clearable
           />
 
           <Select
@@ -306,15 +285,19 @@ export default function ReportsPage() {
                 tableAdmin: value || undefined,
               }))
             }
-          />
-
-          <DatePickerInput
-            label="Date"
-            placeholder="Pick a date"
-            value={date}
-            onChange={setDate}
             clearable
           />
+
+          <div style={{ gridColumn: "span 2" }}>
+            <DatePickerInput
+              label="Date"
+              type="range"
+              placeholder="Pick a date"
+              value={date}
+              onChange={setDate}
+              clearable
+            />
+          </div>
 
           <TimeInput
             label="Time From"
@@ -327,7 +310,6 @@ export default function ReportsPage() {
                 stroke={1.5}
               />
             }
-            // clearable
           />
 
           <TimeInput
@@ -341,7 +323,6 @@ export default function ReportsPage() {
                 stroke={1.5}
               />
             }
-            // clearable
           />
         </div>
 
@@ -371,14 +352,6 @@ export default function ReportsPage() {
               >
                 Export CSV
               </Button>
-              <Button
-                leftSection={<IconPrinter size={16} />}
-                variant="outline"
-                onClick={handlePrint}
-                disabled={responses.length === 0}
-              >
-                Print
-              </Button>
             </Group>
           </Group>
 
@@ -397,19 +370,17 @@ export default function ReportsPage() {
               {responses.length > 0 ? (
                 responses.map((response) => (
                   <Table.Tr key={response.id}>
-                    <Table.Td>{response.table?.name || "Table 1"}</Table.Td>
+                    <Table.Td>{response.table?.name || "-"}</Table.Td>
                     <Table.Td>
                       {response.seat?.number
                         ? "Seat " +
                           String.fromCharCode(64 + response.seat.number)
-                        : "Seat A"}
+                        : "-"}
                     </Table.Td>
                     <Table.Td>
                       {response.session?.name || "Unknown Guest"}
                     </Table.Td>
-                    <Table.Td>
-                      {response.prompt?.title || "Unknown Prompt"}
-                    </Table.Td>
+                    <Table.Td>{response.prompt?.title || "-"}</Table.Td>
                     <Table.Td>
                       {response.type === ResponseType.YES ? (
                         <Badge color="green">YES</Badge>
@@ -426,7 +397,7 @@ export default function ReportsPage() {
                 ))
               ) : (
                 <Table.Tr>
-                  <Table.Td colSpan={5} align="center">
+                  <Table.Td colSpan={6} align="center">
                     <Text>No results found</Text>
                   </Table.Td>
                 </Table.Tr>
