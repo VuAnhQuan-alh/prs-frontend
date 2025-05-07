@@ -18,13 +18,18 @@ export interface WebSocketMessage {
     | "SEAT_UPDATE"
     | "RESPONSE_CREATED"
     | "SERVICE_REQUEST_CREATED"
-    | "TABLE_MESSAGE"; // Fix: use lowercase to match the event name
+    | "TABLE_MESSAGE"
+    | "DEALER_DECLINED"
+    | "DEALER_ROTATION"
+    | "DEALER_ASSIGNED"
+    | "ADMIN_DEALER";
   payload: unknown;
 }
 
 // Define prompt updated payload type
 export interface PromptUpdatedPayload {
   tableId: string;
+  seatId?: string;
   prompt: Prompt | null;
   message: string;
 }
@@ -46,6 +51,38 @@ export interface TableMessagePayload {
   tableName: string;
   message: string;
   timestamp: string | Date;
+}
+
+// Define dealer declined payload type
+export interface DealerDeclinedPayload {
+  tableId: string;
+  seatId: string;
+  seatNumber: number;
+  playerName?: string;
+  message: string;
+}
+
+// Define dealer rotation payload type
+export interface DealerRotationPayload {
+  tableId: string;
+  remainingCandidates: number;
+  message: string;
+}
+
+// Define dealer assigned payload type
+export interface DealerAssignedPayload {
+  tableId: string;
+  seatId: string;
+  seatNumber: number;
+  playerName?: string;
+  playerNotes?: string;
+  message: string;
+}
+
+// Define admin dealer payload type
+export interface AdminDealerPayload {
+  tableId: string;
+  message: string;
 }
 
 // Custom hook for using WebSocket
@@ -277,15 +314,62 @@ export function useWebSocket() {
         };
 
         setLastMessage(message);
+      });
 
-        // Show notification
-        showNotification({
-          title: "Prompt Updated",
-          message:
-            payload.message || "A prompt has been updated for your table",
-          color: "blue",
-          autoClose: 5000,
-        });
+      // Add event listener for dealer declined event
+      socket.on(`table:${tableId}:dealer-declined`, (data) => {
+        console.log("Received dealer-declined event:", data);
+        const payload = data as DealerDeclinedPayload;
+
+        // Create a WebSocketMessage to be consistent with existing structure
+        const message: WebSocketMessage = {
+          type: "DEALER_DECLINED",
+          payload,
+        };
+
+        setLastMessage(message);
+      });
+
+      // Add event listener for dealer rotation event
+      socket.on(`table:${tableId}:dealer-rotation`, (data) => {
+        console.log("Received dealer-rotation event:", data);
+        const payload = data as DealerRotationPayload;
+
+        // Create a WebSocketMessage to be consistent with existing structure
+        const message: WebSocketMessage = {
+          type: "DEALER_ROTATION",
+          payload,
+        };
+
+        setLastMessage(message);
+      });
+
+      // Add event listener for dealer assigned event
+      socket.on(`table:${tableId}:dealer-assigned`, (data) => {
+        console.log("Received dealer-assigned event:", data);
+        const payload = data as DealerAssignedPayload;
+
+        // Create a WebSocketMessage to be consistent with existing structure
+        const message: WebSocketMessage = {
+          type: "DEALER_ASSIGNED",
+          payload,
+        };
+
+        setLastMessage(message);
+      });
+
+      // Add event listener for admin dealer event
+      socket.on(`table:${tableId}:admin-dealer`, (data) => {
+        console.log("Received admin-dealer event:", data);
+        const payload = data as AdminDealerPayload;
+
+        // Create a WebSocketMessage to be consistent with existing structure
+        const message: WebSocketMessage = {
+          type: "ADMIN_DEALER",
+          payload,
+        };
+
+        setLastMessage(message);
       });
 
       socket.on("connect_error", (error) => {
@@ -353,6 +437,8 @@ export function useWebSocket() {
         return "Response Received";
       case NotificationType.SESSION:
         return "Session Update";
+      case NotificationType.PLAYER_DEALER_CHANGE:
+        return "Player-Dealer Change";
       case NotificationType.SYSTEM:
       default:
         return "System Notification";

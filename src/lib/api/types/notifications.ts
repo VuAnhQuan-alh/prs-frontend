@@ -17,6 +17,7 @@ export enum NotificationType {
   RESPONSE = "RESPONSE",
   SYSTEM = "SYSTEM",
   SESSION = "SESSION",
+  PLAYER_DEALER_CHANGE = "PLAYER_DEALER_CHANGE",
 }
 
 export enum NotificationPriority {

@@ -8,6 +8,7 @@ import {
   serviceRequestService,
   sessionService,
   tableService,
+  dealerService,
 } from "@/lib/api/services";
 import { useWebSocket } from "@/lib/api/services/websocket-service";
 import { Prompt } from "@/lib/api/types/prompts";
@@ -63,26 +64,22 @@ export default function UserPlayerPage({
   const [realtimeStatus, setRealtimeStatus] = useState<
     "disconnected" | "connecting" | "connected"
   >("connecting");
-  // Add state for table messages
   const [tableMessages, setTableMessages] = useState<TableMessage[]>([]);
   const [showMessageHistory, setShowMessageHistory] = useState(false);
+  const [isDealerPrompt, setIsDealerPrompt] = useState(false);
 
-  // WebSocket hook
   const {
     isConnected,
     lastMessage,
-    // connect: connectWebSocket,
     connectPromptSocket,
     promptSocketConnected,
   } = useWebSocket();
 
-  // Fetch session data when component mounts
   useEffect(() => {
     fetchSessionData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
-  // Listen for prompt updates from WebSocket
   useEffect(() => {
     if (!sessions?.seat?.table?.id) return;
     console.log("Listening for message updates...");
@@ -90,32 +87,41 @@ export default function UserPlayerPage({
     if (lastMessage) {
       console.log("Received message:", lastMessage);
       if (lastMessage.type === "PROMPT_UPDATED") {
-        // Handle prompt update
         const payload = lastMessage.payload as {
+          seatId?: string;
           tableId: string;
           prompt: Prompt | null;
         };
 
-        // Only update if this update is for our table
+        if (payload.seatId && payload.seatId !== sessions.seatId) return;
+
         if (sessions.seat.table.id === payload.tableId) {
-          // Reset player response state
           setSelectedResponse(null);
           setHasResponded(false);
 
-          // Update current prompt
           if (payload.prompt) {
             setCurrentPrompt(payload.prompt);
 
-            // Show notification to player about new prompt
+            const isDealer =
+              payload.prompt.title?.toLowerCase().includes("player-dealer") ||
+              payload.prompt.content
+                .toLowerCase()
+                .includes("would you like to be the player-dealer");
+
+            setIsDealerPrompt(isDealer);
+
             notifications.show({
-              title: "New Prompt Available",
-              message:
-                "A new prompt has been assigned to your table. Please respond to it.",
-              color: "blue",
+              title: isDealer
+                ? "Player-Dealer Rotation"
+                : "New Prompt Available",
+              message: isDealer
+                ? "Would you like to be the player-dealer for the next round?"
+                : "A new prompt has been assigned to your table. Please respond to it.",
+              color: isDealer ? "yellow" : "blue",
             });
           } else {
-            // Handle case where prompt was deleted/removed
             setCurrentPrompt(null);
+            setIsDealerPrompt(false);
             notifications.show({
               title: "Prompt Removed",
               message: "The current prompt has been removed.",
@@ -124,13 +130,10 @@ export default function UserPlayerPage({
           }
         }
       } else if (lastMessage.type === "TABLE_MESSAGE") {
-        // Handle table message notifications
         console.log("Received table message:", lastMessage);
         const payload = lastMessage.payload as TableMessage;
 
-        // Only handle messages for this player's table
         if (sessions.seat.table.id === payload.tableId) {
-          // Add message to our history
           setTableMessages((prevMessages) => [
             {
               tableId: payload.tableId,
@@ -141,24 +144,23 @@ export default function UserPlayerPage({
             ...prevMessages,
           ]);
 
-          // Show notification with high visibility
           notifications.show({
             title: `Message from Table ${payload.tableName}`,
             message: payload.message,
             color: "blue",
             icon: <IconMessage size="1.1rem" />,
-            autoClose: 10000, // Stay visible longer (10 seconds)
+            autoClose: 10000,
           });
         }
       }
     }
 
-    // Update connection status based on WebSocket state
     if (isConnected && promptSocketConnected) {
       setRealtimeStatus("connected");
     } else if (!isConnected || !promptSocketConnected) {
       setRealtimeStatus("connecting");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     lastMessage,
     isConnected,
@@ -166,7 +168,6 @@ export default function UserPlayerPage({
     sessions?.seat?.table?.id,
   ]);
 
-  // Connect to prompt WebSocket for the table when session data is loaded
   useEffect(() => {
     if (sessions?.seat?.table?.id) {
       connectPromptSocket(sessions.seat.table.id);
@@ -174,7 +175,6 @@ export default function UserPlayerPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessions?.seat?.table?.id]);
 
-  // Function to fetch session data
   const fetchSessionData = async () => {
     try {
       setLoading(true);
@@ -189,8 +189,6 @@ export default function UserPlayerPage({
         return;
       }
       setSessions(data as ISessionPlayer);
-
-      // console.log("Fetched session data:", data);
     } catch (error) {
       console.error("Failed to fetch session:", error);
       notifications.show({
@@ -205,7 +203,6 @@ export default function UserPlayerPage({
     }
   };
 
-  // Fetch the latest prompt for this player
   const fetchCurrentPrompt = async () => {
     try {
       if (!sessions?.seat?.table.id) return;
@@ -214,11 +211,20 @@ export default function UserPlayerPage({
 
       if (table.prompt) {
         setCurrentPrompt(table.prompt);
+
+        const isDealer =
+          table.prompt.title?.toLowerCase().includes("player-dealer") ||
+          table.prompt.content
+            .toLowerCase()
+            .includes("would you like to be the player-dealer");
+
+        setIsDealerPrompt(isDealer);
+
         setSelectedResponse(null);
         setHasResponded(false);
       } else {
-        // If no prompt is set for the table, use a mock or placeholder
         setCurrentPrompt(null);
+        setIsDealerPrompt(false);
       }
     } catch (error) {
       console.error("Failed to fetch prompts:", error);
@@ -236,7 +242,6 @@ export default function UserPlayerPage({
     if (sessions) {
       fetchCurrentPrompt();
 
-      // In a real app, we would set up real-time connections here
       const timer = setTimeout(() => setRealtimeStatus("connected"), 1500);
 
       return () => clearTimeout(timer);
@@ -251,8 +256,6 @@ export default function UserPlayerPage({
       setSelectedResponse(response);
 
       if (response === ResponseType.SERVICE_REQUEST) {
-        // Create a service request - in real implementation, call the API
-        // For now, just simulate success
         await serviceRequestService.create({
           description:
             "Service request from seat " +
@@ -275,8 +278,6 @@ export default function UserPlayerPage({
           color: "blue",
         });
       } else {
-        // Record the yes/no response - in real implementation, call the API
-        // For now, just simulate success
         await responseService.create({
           promptId: currentPrompt.id,
           seatId: sessions.seatId,
@@ -291,6 +292,37 @@ export default function UserPlayerPage({
           message: "Thank you for your response.",
           color: "green",
         });
+
+        if (isDealerPrompt) {
+          // Gọi dealerService.handleDealerResponse khi người chơi phản hồi dealer prompt
+          const dealerResponse =
+            response === ResponseType.YES ? "ACCEPT" : "DECLINE";
+
+          // Call API dealers/response
+          await dealerService.handleDealerResponse(
+            sessions.seat.table.id,
+            sessions.seatId,
+            sessions.id,
+            dealerResponse,
+            sessions.name || sessions.user?.name
+          );
+
+          if (response === ResponseType.YES) {
+            notifications.show({
+              title: "Dealer Status",
+              message: "You will be the dealer for the next round.",
+              color: "green",
+              autoClose: false,
+            });
+          } else {
+            notifications.show({
+              title: "Dealer Status",
+              message:
+                "You declined to be the dealer. The rotation will continue.",
+              color: "blue",
+            });
+          }
+        }
       }
     } catch (error) {
       console.error("Error submitting response:", error);
@@ -332,7 +364,6 @@ export default function UserPlayerPage({
       <header
         style={{
           padding: "1.5rem",
-          // boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
           backgroundColor: "#fff",
         }}
       >
@@ -413,7 +444,6 @@ export default function UserPlayerPage({
                   Session #{sessionId.substring(0, 8)}
                 </Text>
               </Group>
-
               <Text size="sm" c="#596063">
                 You are seated at Table {sessions?.seat.table?.name}, Seat{" "}
                 {String.fromCharCode(64 + Number(sessions?.seat?.number || 0))}
@@ -424,10 +454,12 @@ export default function UserPlayerPage({
 
         <Card p="lg" radius="xl" bg="white">
           <Title order={3} mb="xs">
-            Current Prompt
+            {isDealerPrompt ? "Player-Dealer Prompt" : "Current Prompt"}
           </Title>
           <Text size="sm" c="#596063" mb="md">
-            Please respond using the buttons below
+            {isDealerPrompt
+              ? "Would you like to be the player-dealer for the next round?"
+              : "Please respond using the buttons below"}
           </Text>
 
           <div
@@ -439,14 +471,22 @@ export default function UserPlayerPage({
               justifyContent: "center",
               textAlign: "center",
               fontSize: "1.25rem",
-              background: currentPrompt ? "#228ED01A" : "#F8FBFC",
-              border: currentPrompt ? "2px solid #228ED01A" : "none",
+              background: currentPrompt
+                ? isDealerPrompt
+                  ? "#FFF9C41A"
+                  : "#228ED01A"
+                : "#F8FBFC",
+              border: currentPrompt
+                ? isDealerPrompt
+                  ? "2px solid #FFF9C41A"
+                  : "2px solid #228ED01A"
+                : "none",
               borderRadius: "10px",
             }}
           >
             {currentPrompt ? (
               <Title order={4} c="#262F33">
-                {currentPrompt.title}
+                {currentPrompt.title || currentPrompt.content}
               </Title>
             ) : (
               <Text fs="italic" c="dimmed">
@@ -524,12 +564,16 @@ export default function UserPlayerPage({
               mt="md"
               style={{ opacity: 0.7 }}
             >
-              Thank you for your response! Please wait for the next prompt.
+              Thank you for your response!{" "}
+              {isDealerPrompt
+                ? selectedResponse === ResponseType.YES
+                  ? "You will be notified when your dealer session begins."
+                  : "A new dealer will be selected."
+                : "Please wait for the next prompt."}
             </Text>
           )}
         </Card>
 
-        {/* Table Messages Card */}
         <Card p="lg" radius="xl" bg="white" mt="md">
           <Group justify="space-between" mb="md">
             <Title order={3}>Table Messages</Title>
@@ -548,7 +592,6 @@ export default function UserPlayerPage({
             </Text>
           ) : (
             <>
-              {/* Always show the most recent message */}
               <Paper
                 p="md"
                 withBorder
@@ -560,7 +603,6 @@ export default function UserPlayerPage({
                 <Text>{tableMessages[0].message}</Text>
               </Paper>
 
-              {/* Show message history if expanded */}
               {showMessageHistory && tableMessages.length > 1 && (
                 <ScrollArea mt="lg" h={300} offsetScrollbars>
                   <Timeline

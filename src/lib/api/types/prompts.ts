@@ -51,6 +51,7 @@ export interface UpdatePromptRequest {
   tableId?: string | null; // Added tableId field
   status?: PromptStatusEnum;
   isAllTables?: boolean;
+  seatId?: string;
 }
 
 export interface UpdatePromptResponseOptionRequest {

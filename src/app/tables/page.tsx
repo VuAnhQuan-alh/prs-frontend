@@ -5,9 +5,8 @@ import {
   tableService,
   seatService,
   promptService,
-  // serviceRequestService,
-  // responseService,
   sessionService,
+  dealerService, // Add dealer service import
 } from "@/lib/api/services";
 import {
   Table,
@@ -22,6 +21,8 @@ import {
   ServiceRequestStatus,
 } from "@/lib/api/types/service-requests";
 import { Response } from "@/lib/api/types/responses";
+// Add Dealer type import
+import { Dealer } from "@/lib/api/types/dealers";
 import {
   Title,
   Button,
@@ -41,7 +42,6 @@ import {
   Grid,
   Box,
   Tooltip,
-  Switch,
   Checkbox,
   Avatar,
   LoadingOverlay,
@@ -53,16 +53,13 @@ import {
   IconTrash,
   IconPlus,
   IconChartBar,
-  IconSettings,
   IconUser,
-  IconAlertCircle,
+  // IconAlertCircle,
   IconRefresh,
   IconDetails,
   IconBell,
   IconMessage,
   IconClipboardList,
-  IconDownload,
-  IconPrinter,
   IconUserCheck,
   IconUserX,
 } from "@tabler/icons-react";
@@ -87,7 +84,6 @@ export default function TablesPage() {
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
   const [activeTab, setActiveTab] = useState<string | null>("tables");
-  const [showArchived, setShowArchived] = useState(false);
   const [managers, setManagers] = useState<Manager[]>([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
 
@@ -113,6 +109,12 @@ export default function TablesPage() {
   const [tableResponses, setTableResponses] = useState<Response[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
+
+  // New state for dealer management
+  const [currentDealer, setCurrentDealer] = useState<Dealer | null>(null);
+  const [tableDealers, setTableDealers] = useState<Dealer[]>([]);
+  const [loadingDealer, setLoadingDealer] = useState(false);
+  const [dealerHistoryOpen, setDealerHistoryOpen] = useState(false);
 
   const [tableMessageOpen, setTableMessageOpen] = useState(false);
   const [tableMessage, setTableMessage] = useState("");
@@ -187,8 +189,6 @@ export default function TablesPage() {
         type: "JOINED" | "LEFT";
       };
 
-      console.log("Received seat update:", payload);
-
       // If the update is for the currently selected table, refresh the seat data
       if (selectedTable && selectedTable.id === payload.tableId) {
         fetchTableDetails(selectedTable.id);
@@ -206,7 +206,69 @@ export default function TablesPage() {
         userName: string;
       };
 
-      console.log("Received response notification:", payload);
+      // Check if the response is for the currently prompt player-dealer
+      const prompt = tablePrompts.find((p) => p.id === payload.promptId);
+      if (prompt && prompt.title?.toLowerCase().includes("player-dealer")) {
+        // reload current dealer and check if don't have dealer, next send prompt player-dealer for any seat
+        fetchCurrentDealer(payload.tableId).then((currDealer) => {
+          // await a 1seconds to check if dealer is null
+
+          if (!currDealer && tableSeats.length > 0) {
+            // Find the next seat for dealer rotation
+            const seatIndex = tableSeats.findIndex(
+              (seat) => seat.id === payload.seatId
+            );
+            const nextSeatIndex =
+              seatIndex < tableSeats.length - 1 ? seatIndex + 1 : 0;
+
+            if (nextSeatIndex === seatIndex) {
+              notifications.show({
+                title: "Error",
+                message: "No available seats for dealer rotation",
+                color: "red",
+              });
+              return;
+            }
+
+            // if nextSeatIndex is 0, set admin is dealer
+            if (nextSeatIndex === 0) {
+              // set table admin as dealer
+              dealerService
+                .setTableAdminAsDealer(payload.tableId)
+                .then(() => {
+                  notifications.show({
+                    title: "Success",
+                    message: "Table admin is now the dealer",
+                    color: "green",
+                  });
+                  fetchCurrentDealer(payload.tableId);
+                })
+                .catch((error) => {
+                  console.error("Failed to set table admin as dealer:", error);
+                  notifications.show({
+                    title: "Error",
+                    message: "Failed to set table admin as dealer",
+                    color: "red",
+                  });
+                });
+
+              return;
+            }
+
+            const seatId = tableSeats[nextSeatIndex].id;
+
+            // Send the dealer prompt to the table
+            promptService.update(payload.promptId, {
+              seatId,
+              tableId: payload.tableId,
+              status: PromptStatusEnum.PROCESSED,
+            });
+
+            // Start the dealer rotation
+            dealerService.startDealerRotation(payload.tableId, seatId);
+          }
+        });
+      }
 
       // Show notification to admin
       notifications.show({
@@ -235,8 +297,6 @@ export default function TablesPage() {
         userName: string;
       };
 
-      console.log("Received service request notification:", payload);
-
       // Show notification to admin with higher priority
       notifications.show({
         title: `New ${payload.type} Request`,
@@ -251,6 +311,70 @@ export default function TablesPage() {
       // If this is for the currently selected table, refresh its data
       if (selectedTable && selectedTable.id === payload.tableId) {
         fetchTableActivities(payload.tableId);
+      }
+    } else if (lastMessage?.type === "DEALER_DECLINED") {
+      // Handle dealer declined notification
+      const payload = lastMessage.payload as {
+        tableId: string;
+        seatId: string;
+        seatNumber: number;
+        playerName?: string;
+        message: string;
+      };
+
+      // Show notification to admin
+      notifications.show({
+        title: "Dealer Declined",
+        message: payload.message,
+        color: "orange",
+        icon: <IconUserX size="1.1rem" />,
+        autoClose: 8000,
+      });
+
+      // If this is for the currently selected table, refresh dealer information
+      if (selectedTable && selectedTable.id === payload.tableId) {
+        fetchCurrentDealer(payload.tableId);
+      }
+    } else if (lastMessage?.type === "DEALER_ROTATION") {
+      // Handle dealer rotation notification
+      const payload = lastMessage.payload as {
+        tableId: string;
+        remainingCandidates: number;
+        message: string;
+      };
+
+      // Show notification to admin
+      notifications.show({
+        title: "Dealer Rotation",
+        message: payload.message,
+        color: "blue",
+        icon: <IconRefresh size="1.1rem" />,
+        autoClose: 5000,
+      });
+
+      // If this is for the currently selected table, refresh dealer information
+      if (selectedTable && selectedTable.id === payload.tableId) {
+        fetchCurrentDealer(payload.tableId);
+      }
+    } else if (lastMessage?.type === "ADMIN_DEALER") {
+      // Handle admin dealer notification
+      const payload = lastMessage.payload as {
+        tableId: string;
+        message: string;
+      };
+
+      // Show notification to admin
+      notifications.show({
+        title: "Admin Dealer",
+        message: payload.message,
+        color: "red",
+        icon: <IconUser size="1.1rem" />,
+        autoClose: false,
+      });
+
+      // If this is for the currently selected table, refresh dealer information
+      if (selectedTable && selectedTable.id === payload.tableId) {
+        fetchCurrentDealer(payload.tableId);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -274,7 +398,7 @@ export default function TablesPage() {
   useEffect(() => {
     fetchTables();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, pageSize, showArchived]);
+  }, [currentPage, pageSize]);
 
   // Fetch prompts on detail
   useEffect(() => {
@@ -291,7 +415,6 @@ export default function TablesPage() {
       const response = await tableService.getAll({
         page: currentPage,
         limit: pageSize,
-        archived: showArchived,
       });
 
       // Set total tables count for pagination (assuming the API returns total count)
@@ -380,6 +503,9 @@ export default function TablesPage() {
       // Fetch seats for the table
       const seats = await seatService.getByTable(tableId);
       setTableSeats(seats || []);
+
+      // Fetch current dealer for the table
+      fetchCurrentDealer(tableId);
 
       // Initialize other data arrays
       setTableServiceRequests([]);
@@ -547,6 +673,209 @@ export default function TablesPage() {
     );
   };
 
+  // Function to fetch current dealer for a table return current dealer or null
+  const fetchCurrentDealer = async (tableId: string) => {
+    try {
+      setLoadingDealer(true);
+      const dealer = await dealerService.getCurrentDealer(tableId);
+      setCurrentDealer(dealer);
+
+      if (dealer) {
+        // Find the seat that corresponds to the dealer
+        const tableSeat = tableSeats.find((seat) => seat.id === dealer.seatId);
+        if (tableSeat) {
+          setSelectedSeat(tableSeat);
+        }
+
+        if (dealer.roundsPlayed >= 2) {
+          setTimeout(async () => {
+            setCurrentDealer(null);
+            notifications.show({
+              title: "Success",
+              message:
+                "Dealer session ended successfully, starting rotation...",
+              color: "green",
+              autoClose: 5000,
+            });
+
+            // if dealer played 2 rounds, set dealer to null and end dealer session, start dealer rotation
+            await dealerService.endDealerSession(tableId);
+
+            const seatId =
+              tableSeats.length > 1 && dealer.seatId === tableSeats[0].id
+                ? tableSeats[1].id
+                : undefined;
+
+            await startDealerRotation(tableId, seatId);
+          }, 2000);
+        }
+      }
+      setLoadingDealer(false);
+      return dealer;
+    } catch (error) {
+      console.error("Failed to fetch current dealer:", error);
+      notifications.show({
+        title: "Error",
+        message: "Failed to load dealer information",
+        color: "red",
+      });
+      return null;
+    }
+  };
+
+  // Function to fetch dealer history for a table
+  const fetchDealerHistory = async (tableId: string) => {
+    try {
+      setLoadingDealer(true);
+      const dealers = await dealerService.getTableDealers(tableId);
+      setTableDealers(dealers);
+    } catch (error) {
+      console.error("Failed to fetch dealer history:", error);
+      notifications.show({
+        title: "Error",
+        message: "Failed to load dealer history",
+        color: "red",
+      });
+    } finally {
+      setLoadingDealer(false);
+    }
+  };
+
+  // Function to start dealer rotation
+  const startDealerRotation = async (tableId: string, initSeatId?: string) => {
+    try {
+      setLoadingDealer(true);
+
+      // Find or create the player-dealer prompt if it doesn't exist
+      let dealerPrompt = tablePrompts.find(
+        (prompt) =>
+          prompt.title?.toLowerCase().includes("player-dealer") ||
+          prompt.content
+            .toLowerCase()
+            .includes("would you like to be the player-dealer")
+      );
+
+      if (!dealerPrompt) {
+        // Create a new dealer prompt if one doesn't exist
+        dealerPrompt = await promptService.create({
+          tableId: null,
+          title: "Player-Dealer Rotation",
+          content: "Would you like to be the player-dealer for the next round?",
+          status: PromptStatusEnum.PROCESSED,
+        });
+
+        // Add the new prompt to our local state
+        setTablePrompts([...tablePrompts, dealerPrompt]);
+      }
+
+      let seatId: string | undefined = initSeatId;
+      // get seatId by next current dealer, next current dealer is the one who is
+      // currently dealer
+      if (currentDealer && !initSeatId) {
+        const seatIndex = tableSeats.findIndex(
+          (seat) => seat.id === currentDealer.seatId
+        );
+        if (seatIndex !== -1 && seatIndex < tableSeats.length - 1) {
+          seatId = tableSeats[seatIndex].id;
+        }
+      } else if (!initSeatId) {
+        seatId = tableSeats[1].id; // Default to the first seat if no next dealer found
+      }
+
+      // Send the dealer prompt to the table
+      await promptService.update(dealerPrompt.id, {
+        seatId,
+        tableId,
+        status: PromptStatusEnum.PROCESSED,
+      });
+
+      // Start the dealer rotation
+      const result = await dealerService.startDealerRotation(tableId, seatId);
+
+      // reset current prompt
+      setSelectedTable((table) =>
+        table ? { ...table, promptId: dealerPrompt.id } : null
+      );
+
+      notifications.show({
+        title: "Success",
+        message: result.message || "Dealer rotation started successfully",
+        color: "green",
+      });
+    } catch (error) {
+      console.error("Failed to start dealer rotation:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to start dealer rotation";
+      notifications.show({
+        title: "Error",
+        message: errorMessage,
+        color: "red",
+      });
+    } finally {
+      setLoadingDealer(false);
+    }
+  };
+
+  // Function to check dealer rotation
+  const checkDealerRotation = async (tableId: string) => {
+    try {
+      setLoadingDealer(true);
+      const result = await dealerService.checkDealerRotation(tableId);
+
+      notifications.show({
+        title: "Success",
+        message: result.message || "Dealer rotation checked successfully",
+        color: "green",
+      });
+
+      // Refresh dealer information
+      await fetchCurrentDealer(tableId);
+    } catch (error) {
+      console.error("Failed to check dealer rotation:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to check dealer rotation";
+      notifications.show({
+        title: "Error",
+        message: errorMessage,
+        color: "red",
+      });
+    } finally {
+      setLoadingDealer(false);
+    }
+  };
+
+  // Function to end dealer session
+  const endDealerSession = async (tableId: string) => {
+    try {
+      setLoadingDealer(true);
+      const result = await dealerService.endDealerSession(tableId);
+
+      notifications.show({
+        title: "Success",
+        message: result.message || "Dealer session ended successfully",
+        color: "green",
+      });
+
+      // Reset dealer information
+      setCurrentDealer(null);
+    } catch (error) {
+      console.error("Failed to end dealer session:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to end dealer session";
+      notifications.show({
+        title: "Error",
+        message: errorMessage,
+        color: "red",
+      });
+    } finally {
+      setLoadingDealer(false);
+    }
+  };
+
   // Handle form submit for creating/updating table
   const handleSubmit = async (
     values: CreateTableRequest & {
@@ -687,41 +1016,6 @@ export default function TablesPage() {
     open();
   };
 
-  // Handle archive/unarchive table
-  const handleArchiveToggle = async (table: Table) => {
-    try {
-      const newStatus =
-        table.status === TableStatus.MAINTENANCE
-          ? TableStatus.INACTIVE
-          : TableStatus.MAINTENANCE;
-
-      await tableService.update(table.id, {
-        status: newStatus,
-      });
-
-      notifications.show({
-        title: "Success",
-        message: `Table "${table.name}" has been ${
-          newStatus === TableStatus.MAINTENANCE ? "archived" : "unarchived"
-        }`,
-        color: "green",
-      });
-
-      fetchTables();
-    } catch (error) {
-      console.error("Failed to update table status:", error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to update table status";
-      notifications.show({
-        title: "Error",
-        message: errorMessage,
-        color: "red",
-      });
-    }
-  };
-
   // Find manager name for a table
   const getManagerName = (userId: string | null) => {
     if (!userId) return "Unassigned";
@@ -772,36 +1066,8 @@ export default function TablesPage() {
           >
             Details
           </Tabs.Tab>
-          {currentUser?.role === Role.ADMIN && (
-            <Tabs.Tab value="admin" leftSection={<IconSettings size="1rem" />}>
-              Admin Settings
-            </Tabs.Tab>
-          )}
         </Tabs.List>
       </Tabs>
-
-      {activeTab === "admin" && (
-        <Card shadow="sm" p="lg" mb="md">
-          <Stack>
-            <Group justify="space-between">
-              <Text fw={500}>Admin Controls</Text>
-            </Group>
-            <Divider />
-            <Group>
-              <Switch
-                label="Show Archived Tables"
-                checked={showArchived}
-                onChange={(event) =>
-                  setShowArchived(event.currentTarget.checked)
-                }
-              />
-            </Group>
-            <Text size="sm" c="dimmed">
-              Additional admin settings can be configured here.
-            </Text>
-          </Stack>
-        </Card>
-      )}
 
       {activeTab === "tables" && (
         <Card shadow="sm" p="lg" mb="md">
@@ -833,108 +1099,100 @@ export default function TablesPage() {
                     </MantineTable.Td>
                   </MantineTable.Tr>
                 ) : (
-                  tables
-                    .filter((table) => {
-                      if (showArchived) return true;
-                      return table.status !== TableStatus.MAINTENANCE;
-                    })
-                    .map((table) => (
-                      <MantineTable.Tr key={table.id}>
-                        <MantineTable.Td>
-                          <Tooltip label={`Full ID: ${table.id}`}>
-                            <Text>{table.id.substring(0, 8)}...</Text>
-                          </Tooltip>
-                        </MantineTable.Td>
-                        <MantineTable.Td ta="center">
-                          <Button
-                            variant="subtle"
-                            onClick={() => fetchTableDetails(table.id)}
-                          >
-                            {table.name}
-                          </Button>
-                        </MantineTable.Td>
-                        <MantineTable.Td>{table.capacity}</MantineTable.Td>
-                        <MantineTable.Td>
-                          <Group gap="xs">
-                            {table.userId ? (
-                              <>
-                                <Avatar color="blue" radius="xl" size="sm">
-                                  <IconUser size="0.8rem" />
-                                </Avatar>
-                                <Text size="sm">
-                                  {getManagerName(table.userId)}
-                                </Text>
-                              </>
-                            ) : (
-                              <Text size="sm" c="dimmed">
-                                Unassigned
+                  tables.map((table) => (
+                    <MantineTable.Tr key={table.id}>
+                      <MantineTable.Td>
+                        <Tooltip label={`Full ID: ${table.id}`}>
+                          <Text>{table.id.substring(0, 8)}...</Text>
+                        </Tooltip>
+                      </MantineTable.Td>
+                      <MantineTable.Td ta="center">
+                        <Button
+                          variant="subtle"
+                          onClick={() => fetchTableDetails(table.id)}
+                        >
+                          {table.name}
+                        </Button>
+                      </MantineTable.Td>
+                      <MantineTable.Td>{table.capacity}</MantineTable.Td>
+                      <MantineTable.Td>
+                        <Group gap="xs">
+                          {table.userId ? (
+                            <>
+                              <Avatar color="blue" radius="xl" size="sm">
+                                <IconUser size="0.8rem" />
+                              </Avatar>
+                              <Text size="sm">
+                                {getManagerName(table.userId)}
                               </Text>
-                            )}
-                          </Group>
-                        </MantineTable.Td>
-                        <MantineTable.Td>
-                          {renderStatusBadge(table.status)}
-                        </MantineTable.Td>
-                        <MantineTable.Td>
-                          {format(new Date(table.createdAt), "MMM dd, yyyy")}
-                        </MantineTable.Td>
-                        <MantineTable.Td>
-                          <Group gap="xs" justify="center">
+                            </>
+                          ) : (
+                            <Text size="sm" c="dimmed">
+                              Unassigned
+                            </Text>
+                          )}
+                        </Group>
+                      </MantineTable.Td>
+                      <MantineTable.Td>
+                        {renderStatusBadge(table.status)}
+                      </MantineTable.Td>
+                      <MantineTable.Td>
+                        {format(new Date(table.createdAt), "MMM dd, yyyy")}
+                      </MantineTable.Td>
+                      <MantineTable.Td>
+                        <Group gap="xs" justify="center">
+                          <ActionIcon
+                            variant="light"
+                            color="blue"
+                            onClick={() => handleEdit(table)}
+                            disabled={table.status === TableStatus.MAINTENANCE}
+                          >
+                            <IconEdit size="1rem" />
+                          </ActionIcon>
+                          <ActionIcon
+                            variant="light"
+                            color="red"
+                            onClick={() =>
+                              openDeleteModal({
+                                id: table.id,
+                                name: table.name,
+                              })
+                            }
+                            disabled={
+                              currentUser?.role !== Role.ADMIN ||
+                              table.status === TableStatus.ACTIVE
+                            }
+                          >
+                            <IconTrash size="1rem" />
+                          </ActionIcon>
+                          {/* <Tooltip
+                            label={
+                              table.status === TableStatus.MAINTENANCE
+                                ? "Unarchive"
+                                : "Archive"
+                            }
+                          >
                             <ActionIcon
                               variant="light"
-                              color="blue"
-                              onClick={() => handleEdit(table)}
-                              disabled={
+                              color={
                                 table.status === TableStatus.MAINTENANCE
+                                  ? "green"
+                                  : "orange"
                               }
+                              onClick={() => handleArchiveToggle(table)}
+                              disabled={currentUser?.role !== Role.ADMIN}
                             >
-                              <IconEdit size="1rem" />
+                              {table.status === TableStatus.MAINTENANCE ? (
+                                <IconRefresh size="1rem" />
+                              ) : (
+                                <IconAlertCircle size="1rem" />
+                              )}
                             </ActionIcon>
-                            <ActionIcon
-                              variant="light"
-                              color="red"
-                              onClick={() =>
-                                openDeleteModal({
-                                  id: table.id,
-                                  name: table.name,
-                                })
-                              }
-                              disabled={
-                                (table.status === TableStatus.MAINTENANCE &&
-                                  !showArchived) ||
-                                currentUser?.role !== Role.ADMIN
-                              }
-                            >
-                              <IconTrash size="1rem" />
-                            </ActionIcon>
-                            <Tooltip
-                              label={
-                                table.status === TableStatus.MAINTENANCE
-                                  ? "Unarchive"
-                                  : "Archive"
-                              }
-                            >
-                              <ActionIcon
-                                variant="light"
-                                color={
-                                  table.status === TableStatus.MAINTENANCE
-                                    ? "green"
-                                    : "orange"
-                                }
-                                onClick={() => handleArchiveToggle(table)}
-                                disabled={currentUser?.role !== Role.ADMIN}
-                              >
-                                {table.status === TableStatus.MAINTENANCE ? (
-                                  <IconRefresh size="1rem" />
-                                ) : (
-                                  <IconAlertCircle size="1rem" />
-                                )}
-                              </ActionIcon>
-                            </Tooltip>
-                          </Group>
-                        </MantineTable.Td>
-                      </MantineTable.Tr>
-                    ))
+                          </Tooltip> */}
+                        </Group>
+                      </MantineTable.Td>
+                    </MantineTable.Tr>
+                  ))
                 )}
               </MantineTable.Tbody>
             </MantineTable>
@@ -983,13 +1241,20 @@ export default function TablesPage() {
               </Group>
               <Group gap="xs">
                 <Button
+                  variant="default"
+                  leftSection={<IconMessage size="1rem" />}
+                  onClick={openTableMessageModal}
+                >
+                  Send Table Message
+                </Button>
+                <Button
                   variant="outline"
                   leftSection={<IconEdit size="1rem" />}
                   onClick={() => handleEdit(selectedTable)}
                 >
                   Edit
                 </Button>
-                <Button
+                {/* <Button
                   variant="outline"
                   color="red"
                   leftSection={<IconTrash size="1rem" />}
@@ -1001,14 +1266,14 @@ export default function TablesPage() {
                   }
                 >
                   Delete
-                </Button>
+                </Button> */}
               </Group>
             </Group>
           </Card>
 
-          <Grid gutter="md">
+          <Grid gutter="md" columns={10}>
             {/* Left Column - Table Seats Management */}
-            <Grid.Col span={{ base: 12, md: 4 }}>
+            <Grid.Col span={{ base: 10, md: 4 }}>
               <Card shadow="sm" p="lg" withBorder h="100%">
                 <Title order={4} mb="md">
                   {selectedTable.name} Seats
@@ -1098,7 +1363,7 @@ export default function TablesPage() {
             </Grid.Col>
 
             {/* Middle Column - Prompt Control */}
-            <Grid.Col span={{ base: 12, md: 4 }}>
+            <Grid.Col span={{ base: 10, md: 3 }}>
               <Card shadow="sm" p="lg" withBorder h="100%">
                 <Title order={4} mb="md">
                   Prompt Control
@@ -1150,8 +1415,9 @@ export default function TablesPage() {
 
                     {currentPrompt ? (
                       <Card bg="var(--mantine-color-blue-light)" p="md">
-                        <Text c="black" size="sm">
-                          {currentPrompt.title}
+                        <Title order={4}>{currentPrompt.title}</Title>
+                        <Text c="dimmed" size="sm">
+                          {currentPrompt.content}
                         </Text>
                       </Card>
                     ) : (
@@ -1164,88 +1430,87 @@ export default function TablesPage() {
               </Card>
             </Grid.Col>
 
-            {/* Right Column - Administrative Actions */}
-            <Grid.Col span={{ base: 12, md: 4 }}>
+            {/* Right Column - Player-Dealer Management */}
+            <Grid.Col span={{ base: 10, md: 3 }}>
               <Card shadow="sm" p="lg" withBorder h="100%">
                 <Title order={4} mb="md">
-                  Administrative Actions
+                  Player-Dealer Management
                 </Title>
                 <Text size="sm" c="dimmed" mb="md">
-                  Manage table operations
+                  Manage dealer rotation and control
                 </Text>
 
-                <Stack>
-                  <Button
-                    variant="default"
-                    leftSection={<IconMessage size="1rem" />}
-                    fullWidth
-                    justify="start"
-                    styles={{
-                      inner: { justifyContent: "flex-start" },
-                    }}
-                    onClick={openTableMessageModal}
-                  >
-                    Send Table Message
-                  </Button>
-
-                  <Button
-                    variant="default"
-                    leftSection={<IconDownload size="1rem" />}
-                    fullWidth
-                    justify="start"
-                    styles={{
-                      inner: { justifyContent: "flex-start" },
-                    }}
-                  >
-                    Export Data
-                  </Button>
-
-                  <Button
-                    variant="default"
-                    leftSection={<IconPrinter size="1rem" />}
-                    fullWidth
-                    justify="start"
-                    styles={{
-                      inner: { justifyContent: "flex-start" },
-                    }}
-                  >
-                    Print Report
-                  </Button>
-
-                  <Divider
-                    my="md"
-                    label="Table Statistics"
-                    labelPosition="center"
+                <Box pos="relative">
+                  <LoadingOverlay
+                    visible={loadingDealer}
+                    overlayProps={{ blur: 2 }}
                   />
 
-                  <Group justify="space-between">
-                    <Text size="sm">Occupied Seats:</Text>
-                    <Text size="sm" fw={500}>
-                      {
-                        tableSeats.filter(
-                          (seat) => seat.status === SeatStatus.ACTIVE
-                        ).length
-                      }
-                      /{tableSeats.length}
-                    </Text>
-                  </Group>
+                  <Stack>
+                    {currentDealer ? (
+                      <>
+                        <Group>
+                          <Avatar size="lg" color="blue" radius="xl">
+                            <IconUser size="1.5rem" />
+                          </Avatar>
+                          <Stack gap={0}>
+                            <Text fw={500}>Current Dealer</Text>
+                            <Text>
+                              Seat{" "}
+                              {selectedSeat
+                                ? String.fromCharCode(64 + selectedSeat.number)
+                                : ""}
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                              Rounds: {currentDealer.roundsPlayed}
+                            </Text>
+                          </Stack>
+                        </Group>
 
-                  <Group justify="space-between">
-                    <Text size="sm">Response Rate:</Text>
-                    <Text size="sm" fw={500}>
-                      {tableResponses.length > 0 && tablePrompts.length > 0
-                        ? `${Math.round(
-                            (tableResponses.length / tablePrompts.length) * 100
-                          )}%`
-                        : "0%"}
-                    </Text>
-                  </Group>
+                        <Button
+                          color="orange"
+                          variant="light"
+                          onClick={() => checkDealerRotation(selectedTable.id)}
+                          loading={loadingDealer}
+                        >
+                          Check/Update Rotation
+                        </Button>
 
-                  <Group justify="space-between">
-                    <Text size="sm">Average Rating:</Text>
-                    <Badge color="green">Active</Badge>
-                  </Group>
-                </Stack>
+                        <Button
+                          color="red"
+                          variant="light"
+                          onClick={() => endDealerSession(selectedTable.id)}
+                          loading={loadingDealer}
+                        >
+                          End Dealer Session
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Text c="dimmed" ta="center" mb="md">
+                          No active player-dealer for this table
+                        </Text>
+                        <Button
+                          color="blue"
+                          onClick={() => startDealerRotation(selectedTable.id)}
+                          loading={loadingDealer}
+                        >
+                          Start Dealer Rotation
+                        </Button>
+                      </>
+                    )}
+
+                    <Button
+                      variant="subtle"
+                      onClick={() => {
+                        setDealerHistoryOpen(true);
+                        fetchDealerHistory(selectedTable.id);
+                      }}
+                    >
+                      View Dealer History
+                    </Button>
+                  </Stack>
+                </Box>
               </Card>
             </Grid.Col>
           </Grid>
@@ -1591,6 +1856,68 @@ export default function TablesPage() {
             </Button>
           </Group>
         </Stack>
+      </Modal>
+
+      {/* Dealer History Modal */}
+      <Modal
+        opened={dealerHistoryOpen}
+        onClose={() => setDealerHistoryOpen(false)}
+        title="Player-Dealer History"
+        size="lg"
+      >
+        <Box pos="relative">
+          <LoadingOverlay visible={loadingDealer} overlayProps={{ blur: 2 }} />
+
+          {tableDealers.length === 0 ? (
+            <Text ta="center" c="dimmed">
+              No dealer history available
+            </Text>
+          ) : (
+            <MantineTable striped highlightOnHover>
+              <MantineTable.Thead>
+                <MantineTable.Tr>
+                  <MantineTable.Th>Seat</MantineTable.Th>
+                  <MantineTable.Th>Player Name</MantineTable.Th>
+                  <MantineTable.Th>Rounds Played</MantineTable.Th>
+                  <MantineTable.Th>Status</MantineTable.Th>
+                  <MantineTable.Th>Start Time</MantineTable.Th>
+                </MantineTable.Tr>
+              </MantineTable.Thead>
+              <MantineTable.Tbody>
+                {tableDealers.map((dealer) => {
+                  const seat = tableSeats.find((s) => s.id === dealer.seatId);
+                  return (
+                    <MantineTable.Tr key={dealer.id}>
+                      <MantineTable.Td>
+                        Seat{" "}
+                        {seat ? String.fromCharCode(64 + seat.number) : "?"}
+                      </MantineTable.Td>
+                      <MantineTable.Td>
+                        {dealer.session?.name || "Unknown"}
+                      </MantineTable.Td>
+                      <MantineTable.Td>{dealer.roundsPlayed}</MantineTable.Td>
+                      <MantineTable.Td>
+                        <Badge color={dealer.isActive ? "green" : "gray"}>
+                          {dealer.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </MantineTable.Td>
+                      <MantineTable.Td>
+                        {format(
+                          new Date(dealer.createdAt),
+                          "MMM dd, yyyy h:mm a"
+                        )}
+                      </MantineTable.Td>
+                    </MantineTable.Tr>
+                  );
+                })}
+              </MantineTable.Tbody>
+            </MantineTable>
+          )}
+
+          <Group justify="right" mt="md">
+            <Button onClick={() => setDealerHistoryOpen(false)}>Close</Button>
+          </Group>
+        </Box>
       </Modal>
     </>
   );

@@ -468,6 +468,9 @@ export default function PromptsPage() {
         <Text>
           Are you sure you want to delete the prompt{" "}
           {promptToDelete?.title ? `"${promptToDelete.title}"` : ""}?
+          <br />
+          And when you delete a reminder, all responses to that reminder are
+          deleted. This action cannot be undone.
         </Text>
         <Group justify="flex-end" mt="md">
           <Button variant="outline" color="gray" onClick={closeDelete}>
