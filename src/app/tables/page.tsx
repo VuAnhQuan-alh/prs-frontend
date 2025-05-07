@@ -16,10 +16,10 @@ import {
   SeatStatus,
 } from "@/lib/api/types/tables";
 import { Prompt, PromptStatusEnum } from "@/lib/api/types/prompts";
-import {
-  ServiceRequest,
-  ServiceRequestStatus,
-} from "@/lib/api/types/service-requests";
+// import {
+//   ServiceRequest,
+//   ServiceRequestStatus,
+// } from "@/lib/api/types/service-requests";
 import { Response } from "@/lib/api/types/responses";
 // Add Dealer type import
 import { Dealer } from "@/lib/api/types/dealers";
@@ -59,7 +59,7 @@ import {
   IconDetails,
   IconBell,
   IconMessage,
-  IconClipboardList,
+  // IconClipboardList,
   IconUserCheck,
   IconUserX,
 } from "@tabler/icons-react";
@@ -103,11 +103,11 @@ export default function TablesPage() {
   const [tablePrompt, setTablePrompt] = useState<string | null>(null);
   const [tableSeats, setTableSeats] = useState<Seat[]>([]);
   const [tablePrompts, setTablePrompts] = useState<Prompt[]>([]);
-  const [tableServiceRequests, setTableServiceRequests] = useState<
-    ServiceRequest[]
-  >([]);
+  // const [tableServiceRequests, setTableServiceRequests] = useState<
+  //   ServiceRequest[]
+  // >([]);
   const [tableResponses, setTableResponses] = useState<Response[]>([]);
-  const [loadingDetails, setLoadingDetails] = useState(false);
+  // const [loadingDetails, setLoadingDetails] = useState(false);
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
 
   // New state for dealer management
@@ -495,7 +495,7 @@ export default function TablesPage() {
 
   // New function to fetch table details when a table is selected
   const fetchTableDetails = async (tableId: string) => {
-    setLoadingDetails(true);
+    // setLoadingDetails(true);
     setSelectedTable(tables.find((table) => table.id === tableId) || null);
     setSelectedSeat(null);
 
@@ -508,7 +508,7 @@ export default function TablesPage() {
       fetchCurrentDealer(tableId);
 
       // Initialize other data arrays
-      setTableServiceRequests([]);
+      // setTableServiceRequests([]);
       setTableResponses([]);
 
       // Reset active tab to details
@@ -521,16 +521,16 @@ export default function TablesPage() {
         color: "red",
       });
     } finally {
-      setLoadingDetails(false);
+      // setLoadingDetails(false);
     }
   };
 
   // Function to fetch service requests and response for table
   const fetchTableActivities = async (tableId: string) => {
     try {
-      setLoadingDetails(true);
+      // setLoadingDetails(true);
       const activities = await tableService.getActivities(tableId);
-      setTableServiceRequests(activities.serviceRequests || []);
+      // setTableServiceRequests(activities.serviceRequests || []);
       setTableResponses(activities.responses || []);
     } catch (error) {
       console.error("Failed to fetch table activities:", error);
@@ -540,7 +540,7 @@ export default function TablesPage() {
         color: "red",
       });
     } finally {
-      setLoadingDetails(false);
+      // setLoadingDetails(false);
     }
   };
 
@@ -559,7 +559,7 @@ export default function TablesPage() {
     }
 
     try {
-      setLoadingDetails(true);
+      // setLoadingDetails(true);
 
       // Toggle the status between ACTIVE and INACTIVE
       const newStatus =
@@ -602,7 +602,7 @@ export default function TablesPage() {
         color: "red",
       });
     } finally {
-      setLoadingDetails(false);
+      // setLoadingDetails(false);
     }
   };
 
@@ -1274,7 +1274,7 @@ export default function TablesPage() {
           <Grid gutter="md" columns={10}>
             {/* Left Column - Table Seats Management */}
             <Grid.Col span={{ base: 10, md: 4 }}>
-              <Card shadow="sm" p="lg" withBorder h="100%">
+              <Card shadow="sm" p="lg" h="100%">
                 <Title order={4} mb="md">
                   {selectedTable.name} Seats
                 </Title>
@@ -1293,68 +1293,159 @@ export default function TablesPage() {
                         No seats available for this table
                       </Text>
                     ) : (
-                      tableSeats.map((seat) => (
-                        <Card
-                          key={seat.id}
-                          bg={
-                            seat.user
-                              ? "var(--mantine-color-blue-0)"
-                              : seat.status === SeatStatus.ACTIVE
-                              ? "var(--mantine-color-white-1)"
-                              : "var(--mantine-color-gray-1"
-                          }
-                          withBorder
-                          p="sm"
-                          style={{ cursor: "pointer" }}
-                        >
-                          <Group justify="space-between" align="start">
-                            <Group flex="1">
-                              <Avatar
-                                color={
-                                  seat.status === SeatStatus.ACTIVE
-                                    ? "blue"
-                                    : "gray"
-                                }
-                                radius="xl"
-                                size="md"
-                                style={{ cursor: "pointer" }}
-                              >
-                                {seat.number}
-                              </Avatar>
+                      tableSeats.map((seat, idx) => (
+                        <Group key={seat.id}>
+                          <Card
+                            bg={
+                              seat.status === SeatStatus.ACTIVE
+                                ? "var(--mantine-color-white-1)"
+                                : "var(--mantine-color-gray-1"
+                            }
+                            withBorder
+                            w="55%"
+                            p="sm"
+                            style={{ cursor: "pointer" }}
+                          >
+                            <Group justify="space-between" align="start">
+                              <Group flex="1">
+                                <Avatar
+                                  color={
+                                    idx === 0
+                                      ? "green"
+                                      : seat.status === SeatStatus.ACTIVE
+                                      ? "blue"
+                                      : "gray"
+                                  }
+                                  radius="xl"
+                                  size="md"
+                                  style={{ cursor: "pointer" }}
+                                >
+                                  {seat.number}
+                                </Avatar>
 
-                              <Stack gap={0}>
-                                <Text fw={500}>
-                                  Seat {String.fromCharCode(64 + seat.number)}
-                                </Text>
-                                <Text size="sm" c="dimmed">
-                                  {seat.status === SeatStatus.ACTIVE
-                                    ? seat.user
-                                      ? seat.user.name
-                                      : "Not occupied"
-                                    : "Not active"}
-                                </Text>
-                              </Stack>
+                                <Stack gap={0}>
+                                  <Text fw={500}>
+                                    Seat {String.fromCharCode(64 + seat.number)}{" "}
+                                    {currentDealer &&
+                                      currentDealer.seatId === seat.id &&
+                                      "- Dealer"}
+                                  </Text>
+                                  <Text size="sm" c="dimmed">
+                                    {seat.status === SeatStatus.ACTIVE
+                                      ? seat.user
+                                        ? idx === 0
+                                          ? "Admin"
+                                          : "Guest"
+                                        : "Not occupied"
+                                      : "Not active"}
+                                  </Text>
+                                </Stack>
+                              </Group>
+
+                              <Tooltip label="Change status">
+                                <ActionIcon
+                                  variant="light"
+                                  c={
+                                    seat.status === SeatStatus.ACTIVE
+                                      ? "green"
+                                      : "gray"
+                                  }
+                                  onClick={(e) => toggleSeatStatus(seat, e)}
+                                  disabled={idx === 0}
+                                >
+                                  {seat.status === SeatStatus.ACTIVE ? (
+                                    <IconUserCheck size="1.2rem" />
+                                  ) : (
+                                    <IconUserX size="1.2rem" />
+                                  )}
+                                </ActionIcon>
+                              </Tooltip>
                             </Group>
+                          </Card>
 
-                            <Tooltip label="Change status">
-                              <ActionIcon
-                                variant="light"
-                                c={
-                                  seat.status === SeatStatus.ACTIVE
-                                    ? "green"
-                                    : "gray"
-                                }
-                                onClick={(e) => toggleSeatStatus(seat, e)}
-                              >
-                                {seat.status === SeatStatus.ACTIVE ? (
-                                  <IconUserCheck size="1.2rem" />
-                                ) : (
-                                  <IconUserX size="1.2rem" />
-                                )}
-                              </ActionIcon>
-                            </Tooltip>
-                          </Group>
-                        </Card>
+                          {currentPrompt &&
+                            seat.status === SeatStatus.ACTIVE && (
+                              <Box w="40%">
+                                {(() => {
+                                  // if seat is not active, return null
+                                  if (seat.status !== SeatStatus.ACTIVE) {
+                                    return null;
+                                  }
+
+                                  // if seat is not session
+                                  if (!seat.user) {
+                                    return null;
+                                  }
+
+                                  // if seat is active and seat admin, return null
+                                  if (idx === 0) {
+                                    return null;
+                                  }
+                                  // Find response for this seat and current prompt
+                                  const seatResponse = tableResponses.find(
+                                    (response) =>
+                                      response.seatId === seat.id &&
+                                      response.promptId === currentPrompt.id
+                                  );
+
+                                  if (!seatResponse) {
+                                    return (
+                                      <Badge
+                                        color="blue"
+                                        variant="dot"
+                                        size="lg"
+                                        fullWidth
+                                      >
+                                        Waiting for Response
+                                      </Badge>
+                                    );
+                                  } else {
+                                    // Format response time
+                                    const responseTime = format(
+                                      new Date(seatResponse.createdAt),
+                                      "HH:mm:ss"
+                                    );
+
+                                    let badgeColor = "blue";
+                                    let responseText = "Waiting";
+
+                                    if (seatResponse.type === "YES_RESPONSE") {
+                                      badgeColor = "green";
+                                      responseText = "YES";
+                                    } else if (
+                                      seatResponse.type === "NO_RESPONSE"
+                                    ) {
+                                      badgeColor = "red";
+                                      responseText = "NO";
+                                    } else {
+                                      badgeColor = "yellow";
+                                      responseText = "SERVICE";
+                                    }
+
+                                    return (
+                                      <Stack gap={2}>
+                                        <Badge
+                                          color={badgeColor}
+                                          size="lg"
+                                          fullWidth
+                                        >
+                                          {responseText}
+                                        </Badge>
+                                        <Text
+                                          size="xs"
+                                          ta="center"
+                                          c="dimmed"
+                                          fw={500}
+                                        >
+                                          {responseTime}
+                                        </Text>
+                                      </Stack>
+                                    );
+                                  }
+                                })()}
+                              </Box>
+                            )}
+                        </Group>
                       ))
                     )}
                   </Stack>
@@ -1364,7 +1455,7 @@ export default function TablesPage() {
 
             {/* Middle Column - Prompt Control */}
             <Grid.Col span={{ base: 10, md: 3 }}>
-              <Card shadow="sm" p="lg" withBorder h="100%">
+              <Card shadow="sm" p="lg" h="100%">
                 <Title order={4} mb="md">
                   Prompt Control
                 </Title>
@@ -1432,7 +1523,7 @@ export default function TablesPage() {
 
             {/* Right Column - Player-Dealer Management */}
             <Grid.Col span={{ base: 10, md: 3 }}>
-              <Card shadow="sm" p="lg" withBorder h="100%">
+              <Card shadow="sm" p="lg" h="100%">
                 <Title order={4} mb="md">
                   Player-Dealer Management
                 </Title>
@@ -1516,7 +1607,7 @@ export default function TablesPage() {
           </Grid>
 
           {/* Service Requests and Responses Tabs */}
-          <Card shadow="sm" p="lg">
+          {/* <Card shadow="sm" p="lg">
             <Box pos="relative">
               <LoadingOverlay
                 visible={loadingDetails}
@@ -1678,7 +1769,7 @@ export default function TablesPage() {
                 </Tabs.Panel>
               </Tabs>
             </Box>
-          </Card>
+          </Card> */}
         </Stack>
       )}
 
