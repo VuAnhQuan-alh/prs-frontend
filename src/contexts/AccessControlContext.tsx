@@ -9,11 +9,18 @@ const rolePermissions = {
     "/dashboard",
     "/users",
     "/tables",
+    "/retable",
     "/prompts",
     "/service-requests",
     "/reports",
   ],
-  [Role.TABLE]: ["/tables", "/prompts", "/service-requests", "/reports"],
+  [Role.TABLE]: [
+    "/tables",
+    "retable",
+    "/prompts",
+    "/service-requests",
+    "/reports",
+  ],
   [Role.USER]: ["/users", "/service-requests", "/reports"],
 };
 

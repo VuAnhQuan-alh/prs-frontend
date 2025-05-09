@@ -22,7 +22,9 @@ export interface WebSocketMessage {
     | "DEALER_DECLINED"
     | "DEALER_ROTATION"
     | "DEALER_ASSIGNED"
-    | "ADMIN_DEALER";
+    | "ADMIN_DEALER"
+    | "TABLE_RESPONSE"
+    | "TABLE_ACTION";
   payload: unknown;
 }
 
@@ -230,10 +232,7 @@ export function useWebSocket() {
 
       socket.on("responseCreated", (data) => {
         console.log("Received responseCreated event:", data);
-        setLastMessage(data); // data already has correct structure with type and payload
-
-        // Don't show notification for the player who submitted the response
-        // This is intended for admin notification only
+        setLastMessage(data);
       });
 
       socket.on("serviceRequestCreated", (data) => {
@@ -300,6 +299,16 @@ export function useWebSocket() {
 
       socket.on("tableMessage", (data) => {
         console.log("Received tableMessage event:", data);
+        setLastMessage(data);
+      });
+
+      socket.on("tableResponse", (data) => {
+        console.log("Received tableResponse event:", data);
+        setLastMessage(data);
+      });
+
+      socket.on("tableAction", (data) => {
+        console.log("Received tableAction event:", data);
         setLastMessage(data);
       });
 
@@ -370,6 +379,11 @@ export function useWebSocket() {
         };
 
         setLastMessage(message);
+      });
+
+      socket.on("responseCreated", (data) => {
+        console.log("Received responseCreated event in prompt socket:", data);
+        setLastMessage(data);
       });
 
       socket.on("connect_error", (error) => {

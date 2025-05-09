@@ -38,6 +38,8 @@ export interface CreateTableRequest {
   name: string;
   capacity: number;
   locationId?: string;
+  userId?: string | null;
+  status?: TableStatus;
 }
 
 export interface UpdateTableRequest {

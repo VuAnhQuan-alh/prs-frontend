@@ -18,7 +18,7 @@ import { seatService, sessionService, tableService } from "@/lib/api/services";
 import { Seat, SeatStatus, Table, TableStatus } from "@/lib/api/types/tables";
 import Image from "next/image";
 
-export default function PlayerPage() {
+export default function SeatSetupPage() {
   const [loading, setLoading] = useState(false);
   const [loadingSeat, setLoadingSeat] = useState(false);
   const router = useRouter();
@@ -28,7 +28,7 @@ export default function PlayerPage() {
 
   const form = useForm({
     initialValues: {
-      name: "",
+      name: "Guest",
       tableId: "",
       seatId: "",
     },
@@ -150,19 +150,19 @@ export default function PlayerPage() {
 
       <Paper radius="md" p="xl" className="w-full max-w-md mt-10">
         <Title ta="center" c="#228ED0" order={2} mb="sm">
-          Guest Login
+          Guest Setup
         </Title>
         <Text ta="center" c="#454C50" size="lg" fw={500} mb="xl">
-          Please sign in to continue
+          Please setup to continue
         </Text>
 
         <form onSubmit={form.onSubmit(handleSubmit)} autoComplete="off">
           <TextInput
-            label="Username"
             placeholder="Your username"
             required
             mb="md"
             {...form.getInputProps("name")}
+            hidden
           />
 
           <Select
@@ -194,13 +194,15 @@ export default function PlayerPage() {
               loadingSeat
                 ? [{ value: "loading", label: "Loading seats..." }]
                 : [
-                    ...seats.map((seat) => ({
-                      value: seat.id,
-                      label: `Seat ${String.fromCharCode(64 + seat.number)}`,
-                      disabled: Boolean(
-                        seat.status === SeatStatus.INACTIVE || seat.user
-                      ),
-                    })),
+                    ...seats
+                      .filter((seat) => seat.number !== 0)
+                      .map((seat) => ({
+                        value: seat.id,
+                        label: `Seat ${String.fromCharCode(64 + seat.number)}`,
+                        disabled: Boolean(
+                          seat.status === SeatStatus.INACTIVE || seat.user
+                        ),
+                      })),
                   ]
             }
             disabled={loadingSeat || loading || !tableIdWatch}
@@ -210,7 +212,7 @@ export default function PlayerPage() {
           />
 
           <Button fullWidth type="submit" loading={loading}>
-            Sign in
+            Continue
           </Button>
         </form>
 

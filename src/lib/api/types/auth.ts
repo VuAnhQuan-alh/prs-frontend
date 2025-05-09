@@ -33,3 +33,10 @@ export interface AuthResponse {
   accessToken: string;
   user: AuthUser;
 }
+
+export interface Manager {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}

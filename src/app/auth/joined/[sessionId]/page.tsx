@@ -9,6 +9,7 @@ import {
   sessionService,
   tableService,
   dealerService,
+  seatService,
 } from "@/lib/api/services";
 import { useWebSocket } from "@/lib/api/services/websocket-service";
 import { Prompt } from "@/lib/api/types/prompts";
@@ -28,6 +29,7 @@ import {
   Title,
   Timeline,
   ScrollArea,
+  Grid,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { IconBell, IconRefresh, IconMessage } from "@tabler/icons-react";
@@ -67,6 +69,13 @@ export default function UserPlayerPage({
   const [tableMessages, setTableMessages] = useState<TableMessage[]>([]);
   const [showMessageHistory, setShowMessageHistory] = useState(false);
   const [isDealerPrompt, setIsDealerPrompt] = useState(false);
+  const [tableSeats, setTableSeats] = useState<Seat[]>([]);
+  const [seatResponses, setSeatResponses] = useState<
+    Record<string, ResponseType | null>
+  >({});
+  const [tableActions, setTableActions] = useState<{
+    [key: string]: string;
+  } | null>(null);
 
   const {
     isConnected,
@@ -98,6 +107,9 @@ export default function UserPlayerPage({
         if (sessions.seat.table.id === payload.tableId) {
           setSelectedResponse(null);
           setHasResponded(false);
+
+          // Reset seat responses when a new prompt is received
+          setSeatResponses({});
 
           if (payload.prompt) {
             setCurrentPrompt(payload.prompt);
@@ -152,6 +164,93 @@ export default function UserPlayerPage({
             autoClose: 10000,
           });
         }
+      } else if (lastMessage.type === "TABLE_RESPONSE") {
+        // Handle new table response notification
+        const payload = lastMessage.payload as {
+          tableId: string;
+          seatId: string;
+          responseType: ResponseType;
+        };
+        console.log("Table response received:", payload, sessions);
+
+        if (sessions.seat.table.id === payload.tableId) {
+          // Update the seatResponses state
+          setSeatResponses((prev) => ({
+            ...prev,
+            [payload.seatId]: payload.responseType,
+          }));
+        }
+      } else if (lastMessage.type === "TABLE_ACTION") {
+        // Handle table action notifications
+        const payload = lastMessage.payload as {
+          tableId: string;
+          action: string;
+          seat?: string;
+        };
+        console.log("Table action received:", payload);
+
+        if (sessions.seat.table.id === payload.tableId) {
+          if (payload.action === "PAUSE") {
+            notifications.show({
+              title: "Table Paused",
+              message: "The table has been paused.",
+              color: "yellow",
+            });
+            setTableActions({
+              action: payload.action,
+              seat: payload?.seat || "",
+            });
+
+            // setCurrentPrompt(null);
+            setSeatResponses({});
+          }
+
+          if (payload.action === "TERMINATE") {
+            if (payload.seat === sessions.seatId) {
+              notifications.show({
+                title: "Table Terminated",
+                message: "The table has been terminated.",
+                color: "red",
+              });
+
+              setTableActions(null);
+              setCurrentPrompt(null);
+              setSeatResponses({});
+
+              // Redirect to the player interface
+              setTimeout(() => {
+                handleLogout();
+              }, 1400);
+
+              return;
+            }
+
+            notifications.show({
+              title: "Table Terminated",
+              message: "The table has been terminated.",
+              color: "red",
+            });
+
+            setTableActions(null);
+            setCurrentPrompt(null);
+            setSeatResponses({});
+
+            // Redirect to the player interface
+            setTimeout(() => {
+              handleLogout();
+            }, 1400);
+          }
+
+          if (payload.action === "ACTIVATE") {
+            notifications.show({
+              title: "Table Activated",
+              message: "The table has been activated.",
+              color: "green",
+            });
+
+            setTableActions(null);
+          }
+        }
       }
     }
 
@@ -171,6 +270,8 @@ export default function UserPlayerPage({
   useEffect(() => {
     if (sessions?.seat?.table?.id) {
       connectPromptSocket(sessions.seat.table.id);
+      // Fetch all seats for the table
+      fetchTableSeats(sessions.seat.table.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessions?.seat?.table?.id]);
@@ -203,6 +304,18 @@ export default function UserPlayerPage({
     }
   };
 
+  // New function to fetch all seats for the table
+  const fetchTableSeats = async (tableId: string) => {
+    try {
+      const seats = await seatService.getByTable(tableId);
+      // Sort seats by number
+      seats.sort((a, b) => a.number - b.number);
+      setTableSeats(seats);
+    } catch (error) {
+      console.error("Failed to fetch table seats:", error);
+    }
+  };
+
   const fetchCurrentPrompt = async () => {
     try {
       if (!sessions?.seat?.table.id) return;
@@ -222,6 +335,11 @@ export default function UserPlayerPage({
 
         setSelectedResponse(null);
         setHasResponded(false);
+
+        // Fetch current responses for this prompt
+        if (table.prompt.id) {
+          fetchPromptResponses(table.prompt.id);
+        }
       } else {
         setCurrentPrompt(null);
         setIsDealerPrompt(false);
@@ -235,6 +353,30 @@ export default function UserPlayerPage({
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // New function to fetch responses for the current prompt
+  const fetchPromptResponses = async (promptId: string) => {
+    try {
+      const responses = await responseService.getByPrompt(promptId);
+
+      // Create a mapping of seatId to response type
+      const responseMap: Record<string, ResponseType> = {};
+      responses.forEach((response) => {
+        responseMap[response.seatId] = response.type as ResponseType;
+      });
+
+      setSeatResponses(responseMap);
+
+      // Check if current user has already responded
+      const userResponse = responses.find((r) => r.seatId === sessions?.seatId);
+      if (userResponse) {
+        setSelectedResponse(userResponse.type as ResponseType);
+        setHasResponded(true);
+      }
+    } catch (error) {
+      console.error("Failed to fetch prompt responses:", error);
     }
   };
 
@@ -359,6 +501,8 @@ export default function UserPlayerPage({
     );
   }
 
+  console.log({ currentPrompt, hasResponded, tableActions });
+
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F8FBFC" }}>
       <header
@@ -399,7 +543,7 @@ export default function UserPlayerPage({
         </Container>
       </header>
 
-      <Container size="sm" py="xl">
+      <Container size="md" py="xl">
         {realtimeStatus !== "connected" && (
           <Paper
             mb="md"
@@ -432,199 +576,268 @@ export default function UserPlayerPage({
           </Paper>
         )}
 
-        <Card p="lg" radius="xl" mb="md" bg="white">
-          <Group justify="apart">
-            <Avatar>PG</Avatar>
-            <Box>
-              <Group justify="apart" mb="xs">
-                <Title order={4}>
-                  {sessions?.user?.name || sessions?.name}
-                </Title>
-                <Text size="sm" c="dimmed">
-                  Session #{sessionId.substring(0, 8)}
-                </Text>
+        <Grid gutter="md">
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            {/* information seat */}
+            <Card p="lg" radius="xl" mb="md" bg="white">
+              <Group justify="apart">
+                <Avatar>PG</Avatar>
+                <Box>
+                  <Group justify="apart" mb="xs">
+                    <Title order={4}>
+                      {sessions?.user?.name || sessions?.name}
+                    </Title>
+                    <Text size="sm" c="dimmed">
+                      Session #{sessionId.substring(0, 8)}
+                    </Text>
+                  </Group>
+                  <Text size="sm" c="#596063">
+                    You are seated at Table {sessions?.seat.table?.name}, Seat{" "}
+                    {String.fromCharCode(
+                      64 + Number(sessions?.seat?.number || 0)
+                    )}
+                  </Text>
+                </Box>
               </Group>
-              <Text size="sm" c="#596063">
-                You are seated at Table {sessions?.seat.table?.name}, Seat{" "}
-                {String.fromCharCode(64 + Number(sessions?.seat?.number || 0))}
-              </Text>
-            </Box>
-          </Group>
-        </Card>
+            </Card>
 
-        <Card p="lg" radius="xl" bg="white">
-          <Title order={3} mb="xs">
-            {isDealerPrompt ? "Player-Dealer Prompt" : "Current Prompt"}
-          </Title>
-          <Text size="sm" c="#596063" mb="md">
-            {isDealerPrompt
-              ? "Would you like to be the player-dealer for the next round?"
-              : "Please respond using the buttons below"}
-          </Text>
-
-          <div
-            style={{
-              padding: "1.5rem",
-              minHeight: "100px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              textAlign: "center",
-              fontSize: "1.25rem",
-              background: currentPrompt
-                ? isDealerPrompt
-                  ? "#FFF9C41A"
-                  : "#228ED01A"
-                : "#F8FBFC",
-              border: currentPrompt
-                ? isDealerPrompt
-                  ? "2px solid #FFF9C41A"
-                  : "2px solid #228ED01A"
-                : "none",
-              borderRadius: "10px",
-            }}
-          >
-            {currentPrompt ? (
-              <Title order={4} c="#262F33">
-                {currentPrompt.title || currentPrompt.content}
+            {/* Table seats */}
+            <Card p="lg" radius="xl" bg="white" mt="md">
+              <Title order={3} mb="md">
+                Table Seats
               </Title>
-            ) : (
-              <Text fs="italic" c="dimmed">
-                Waiting for prompt...
-              </Text>
-            )}
-          </div>
-
-          <Flex gap="md" justify="center" my="md">
-            <Button
-              size="xl"
-              radius="xl"
-              color="green"
-              variant={
-                selectedResponse === ResponseType.YES ? "filled" : "light"
-              }
-              onClick={() => handleResponse(ResponseType.YES)}
-              disabled={!currentPrompt || hasResponded}
-              style={{
-                width: "105px",
-                height: "105px",
-                borderRadius: "50%",
-                fontSize: "1.2rem",
-              }}
-            >
-              YES
-            </Button>
-
-            <Button
-              size="xl"
-              radius="xl"
-              color="red"
-              variant={
-                selectedResponse === ResponseType.NO ? "filled" : "light"
-              }
-              onClick={() => handleResponse(ResponseType.NO)}
-              disabled={!currentPrompt || hasResponded}
-              style={{
-                width: "105px",
-                height: "105px",
-                borderRadius: "50%",
-                fontSize: "1.2rem",
-              }}
-            >
-              NO
-            </Button>
-
-            <Button
-              size="xl"
-              radius="xl"
-              color="yellow"
-              variant={
-                selectedResponse === ResponseType.SERVICE_REQUEST
-                  ? "filled"
-                  : "light"
-              }
-              onClick={() => handleResponse(ResponseType.SERVICE_REQUEST)}
-              disabled={!currentPrompt}
-              style={{
-                width: "105px",
-                height: "105px",
-                borderRadius: "50%",
-                fontSize: "1.2rem",
-              }}
-            >
-              SER
-            </Button>
-          </Flex>
-
-          {hasResponded && (
-            <Text
-              ta="center"
-              fs="italic"
-              c="dimmed"
-              mt="md"
-              style={{ opacity: 0.7 }}
-            >
-              Thank you for your response!{" "}
-              {isDealerPrompt
-                ? selectedResponse === ResponseType.YES
-                  ? "You will be notified when your dealer session begins."
-                  : "A new dealer will be selected."
-                : "Please wait for the next prompt."}
-            </Text>
-          )}
-        </Card>
-
-        <Card p="lg" radius="xl" bg="white" mt="md">
-          <Group justify="space-between" mb="md">
-            <Title order={3}>Table Messages</Title>
-            <Button
-              variant="subtle"
-              size="sm"
-              onClick={() => setShowMessageHistory(!showMessageHistory)}
-            >
-              {showMessageHistory ? "Hide History" : "Show History"}
-            </Button>
-          </Group>
-
-          {tableMessages.length === 0 ? (
-            <Text c="dimmed" ta="center">
-              No messages from table administrator yet
-            </Text>
-          ) : (
-            <>
-              <Paper
-                p="md"
-                withBorder
-                style={{ borderLeft: "4px solid #228ED0" }}
-              >
-                <Text size="sm" fw={500} mb={5}>
-                  {new Date(tableMessages[0].timestamp).toLocaleString()}
+              {tableSeats.length === 0 ? (
+                <Text c="dimmed" ta="center">
+                  No seats available for this table
                 </Text>
-                <Text>{tableMessages[0].message}</Text>
-              </Paper>
-
-              {showMessageHistory && tableMessages.length > 1 && (
-                <ScrollArea mt="lg" h={300} offsetScrollbars>
-                  <Timeline
-                    active={tableMessages.length - 1}
-                    bulletSize={24}
-                    lineWidth={2}
-                  >
-                    {tableMessages.slice(1).map((msg, index) => (
-                      <Timeline.Item
-                        key={index}
-                        title={new Date(msg.timestamp).toLocaleString()}
-                        bullet={<IconMessage size={12} />}
+              ) : (
+                <Flex direction="column" gap="sm">
+                  {tableSeats
+                    .filter((seat) => seat.number !== 0)
+                    .map((seat) => (
+                      <Paper
+                        key={seat.id}
+                        p="md"
+                        withBorder
+                        style={{
+                          borderLeft: `4px solid ${
+                            seatResponses[seat.id] === ResponseType.YES
+                              ? "green"
+                              : seatResponses[seat.id] === ResponseType.NO
+                              ? "red"
+                              : seatResponses[seat.id] ===
+                                ResponseType.SERVICE_REQUEST
+                              ? "yellow"
+                              : "gray"
+                          }`,
+                        }}
                       >
-                        <Text size="sm">{msg.message}</Text>
-                      </Timeline.Item>
+                        <Group justify="space-between">
+                          <Text fw={500}>
+                            Seat {String.fromCharCode(64 + seat.number)}
+                          </Text>
+                          <Text c="dimmed">
+                            {seatResponses[seat.id]
+                              ? seatResponses[seat.id] === ResponseType.YES
+                                ? "Yes"
+                                : seatResponses[seat.id] === ResponseType.NO
+                                ? "No"
+                                : "Service Request"
+                              : "No response"}
+                          </Text>
+                        </Group>
+                      </Paper>
                     ))}
-                  </Timeline>
-                </ScrollArea>
+                </Flex>
               )}
-            </>
-          )}
-        </Card>
+            </Card>
+          </Grid.Col>
+
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            {/* Current prompt and response */}
+            <Card p="lg" radius="xl" bg="white">
+              <Title order={3} mb="xs">
+                {isDealerPrompt ? "Player-Dealer Prompt" : "Current Prompt"}
+              </Title>
+              <Text size="sm" c="#596063" mb="md">
+                {isDealerPrompt
+                  ? "Would you like to be the player-dealer for the next round?"
+                  : "Please respond using the buttons below"}
+              </Text>
+
+              <div
+                style={{
+                  padding: "1.5rem",
+                  minHeight: "100px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textAlign: "center",
+                  fontSize: "1.25rem",
+                  background:
+                    currentPrompt && tableActions === null
+                      ? isDealerPrompt
+                        ? "#FFF9C41A"
+                        : "#228ED01A"
+                      : "#F8FBFC",
+                  border: currentPrompt
+                    ? isDealerPrompt
+                      ? "2px solid #FFF9C41A"
+                      : "2px solid #228ED01A"
+                    : "none",
+                  borderRadius: "10px",
+                }}
+              >
+                {currentPrompt ? (
+                  <Title order={4} c="#262F33">
+                    {currentPrompt.title || currentPrompt.content}
+                  </Title>
+                ) : (
+                  <Text fs="italic" c="dimmed">
+                    Waiting for prompt...
+                  </Text>
+                )}
+              </div>
+
+              <Flex gap="md" justify="center" my="md">
+                <Button
+                  size="xl"
+                  radius="xl"
+                  color="green"
+                  variant={
+                    selectedResponse === ResponseType.YES ? "filled" : "light"
+                  }
+                  onClick={() => handleResponse(ResponseType.YES)}
+                  disabled={
+                    !currentPrompt || hasResponded || tableActions !== null
+                  }
+                  style={{
+                    width: "105px",
+                    height: "105px",
+                    borderRadius: "50%",
+                    fontSize: "1.2rem",
+                  }}
+                >
+                  YES
+                </Button>
+
+                <Button
+                  size="xl"
+                  radius="xl"
+                  color="red"
+                  variant={
+                    selectedResponse === ResponseType.NO ? "filled" : "light"
+                  }
+                  onClick={() => handleResponse(ResponseType.NO)}
+                  disabled={
+                    !currentPrompt || hasResponded || tableActions !== null
+                  }
+                  style={{
+                    width: "105px",
+                    height: "105px",
+                    borderRadius: "50%",
+                    fontSize: "1.2rem",
+                  }}
+                >
+                  NO
+                </Button>
+
+                <Button
+                  size="xl"
+                  radius="xl"
+                  color="yellow"
+                  variant={
+                    selectedResponse === ResponseType.SERVICE_REQUEST
+                      ? "filled"
+                      : "light"
+                  }
+                  onClick={() => handleResponse(ResponseType.SERVICE_REQUEST)}
+                  disabled={
+                    !currentPrompt || hasResponded || tableActions !== null
+                  }
+                  style={{
+                    width: "105px",
+                    height: "105px",
+                    borderRadius: "50%",
+                    fontSize: "1.2rem",
+                  }}
+                >
+                  SER
+                </Button>
+              </Flex>
+
+              {hasResponded && (
+                <Text
+                  ta="center"
+                  fs="italic"
+                  c="dimmed"
+                  mt="md"
+                  style={{ opacity: 0.7 }}
+                >
+                  Thank you for your response!{" "}
+                  {isDealerPrompt
+                    ? selectedResponse === ResponseType.YES
+                      ? "You will be notified when your dealer session begins."
+                      : "A new dealer will be selected."
+                    : "Please wait for the next prompt."}
+                </Text>
+              )}
+            </Card>
+
+            {/* Table messages */}
+            <Card p="lg" radius="xl" bg="white" mt="md">
+              <Group justify="space-between" mb="md">
+                <Title order={3}>Table Messages</Title>
+                <Button
+                  variant="subtle"
+                  size="sm"
+                  onClick={() => setShowMessageHistory(!showMessageHistory)}
+                >
+                  {showMessageHistory ? "Hide History" : "Show History"}
+                </Button>
+              </Group>
+
+              {tableMessages.length === 0 ? (
+                <Text c="dimmed" ta="center">
+                  No messages from table administrator yet
+                </Text>
+              ) : (
+                <>
+                  <Paper
+                    p="md"
+                    withBorder
+                    style={{ borderLeft: "4px solid #228ED0" }}
+                  >
+                    <Text size="sm" fw={500} mb={5}>
+                      {new Date(tableMessages[0].timestamp).toLocaleString()}
+                    </Text>
+                    <Text>{tableMessages[0].message}</Text>
+                  </Paper>
+
+                  {showMessageHistory && tableMessages.length > 1 && (
+                    <ScrollArea mt="lg" h={300} offsetScrollbars>
+                      <Timeline
+                        active={tableMessages.length - 1}
+                        bulletSize={24}
+                        lineWidth={2}
+                      >
+                        {tableMessages.slice(1).map((msg, index) => (
+                          <Timeline.Item
+                            key={index}
+                            title={new Date(msg.timestamp).toLocaleString()}
+                            bullet={<IconMessage size={12} />}
+                          >
+                            <Text size="sm">{msg.message}</Text>
+                          </Timeline.Item>
+                        ))}
+                      </Timeline>
+                    </ScrollArea>
+                  )}
+                </>
+              )}
+            </Card>
+          </Grid.Col>
+        </Grid>
       </Container>
     </div>
   );

@@ -43,7 +43,7 @@ class SeatService {
     const seats: Seat[] = [];
 
     // Create seats sequentially with consecutive numbers
-    for (let i = 1; i <= count; i++) {
+    for (let i = 0; i < count; i++) {
       const seatData: CreateSeatRequest = {
         tableId: tableId,
         number: i,

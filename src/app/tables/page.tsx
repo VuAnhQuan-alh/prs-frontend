@@ -1585,6 +1585,13 @@ export default function TablesPage() {
                           color="blue"
                           onClick={() => startDealerRotation(selectedTable.id)}
                           loading={loadingDealer}
+                          disabled={
+                            tableSeats.length < 2 ||
+                            tableSeats.every(
+                              (seat) => seat.status !== "ACTIVE"
+                            ) ||
+                            tableSeats.filter((seat) => seat.user).length < 3
+                          }
                         >
                           Start Dealer Rotation
                         </Button>

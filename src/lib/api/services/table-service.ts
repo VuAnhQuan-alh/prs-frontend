@@ -78,6 +78,36 @@ class TableService {
   }
 
   /**
+   * Send a responses for a table
+   * @param tableId - Table ID
+   * @returns Responses for the table
+   */
+  async sendResponse(
+    tableId: string,
+    data: { seatId: string; responseId: string }
+  ): Promise<Response[]> {
+    return await apiClient.post<Response[]>(
+      `${this.BASE_URL}/${tableId}/responses`,
+      data
+    );
+  }
+
+  /**
+   * Send a action for a table
+   * @param tableId - Table ID
+   * @returns Action for the table
+   */
+  async sendAction(
+    tableId: string,
+    data: { action: string; seatId?: string }
+  ): Promise<{ success: boolean; message: string }> {
+    return await apiClient.post<{ success: boolean; message: string }>(
+      `${this.BASE_URL}/${tableId}/actions`,
+      data
+    );
+  }
+
+  /**
    * Create a table with seats
    * @param tableData - Table data
    * @param seatCount - Number of seats to create for the table
@@ -93,7 +123,7 @@ class TableService {
 
       // Then create seats for the table
       if (seatCount > 0) {
-        await seatService.createMultipleSeats(table.id, seatCount);
+        await seatService.createMultipleSeats(table.id, seatCount + 1);
       }
 
       return table;
