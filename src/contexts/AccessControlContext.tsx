@@ -8,14 +8,14 @@ const rolePermissions = {
   [Role.ADMIN]: [
     "/dashboard",
     "/users",
-    "/tables",
+    "/retable",
     "/retable",
     "/prompts",
     "/service-requests",
     "/reports",
   ],
   [Role.TABLE]: [
-    "/tables",
+    "/retable",
     "retable",
     "/prompts",
     "/service-requests",
@@ -27,7 +27,7 @@ const rolePermissions = {
 // Path that roles will be redirected to if they try to access an unauthorized route
 const roleDefaultPaths = {
   [Role.ADMIN]: "/dashboard",
-  [Role.TABLE]: "/tables",
+  [Role.TABLE]: "/retable",
   [Role.USER]: "/users",
 };
 

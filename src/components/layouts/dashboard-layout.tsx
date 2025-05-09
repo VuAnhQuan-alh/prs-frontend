@@ -99,9 +99,9 @@ const getNavigationItems = (path: string, role?: Role) => {
       roles: [Role.ADMIN, Role.USER],
     },
     {
-      icon: <IconTable active={path == "/tables"} />,
+      icon: <IconTable active={path == "/retable"} />,
       label: "Tables",
-      href: "/tables",
+      href: "/retable",
       roles: [Role.ADMIN, Role.TABLE],
     },
     {

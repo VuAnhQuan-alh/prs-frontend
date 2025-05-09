@@ -360,7 +360,7 @@ export default function Dashboard() {
                   fullWidth
                   mt="md"
                   component={Link}
-                  href="/tables"
+                  href="/retable"
                 >
                   Go
                 </Button>

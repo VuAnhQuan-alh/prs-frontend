@@ -45,7 +45,7 @@ export default function LoginPage() {
       if (auth.user.role === Role.ADMIN) {
         router.push("/dashboard");
       } else if (auth.user.role === Role.TABLE) {
-        router.push("/tables");
+        router.push("/retable");
       } else if (auth.user.role === Role.USER) {
         router.push("/users");
       }
