@@ -8,8 +8,7 @@ const rolePermissions = {
   [Role.ADMIN]: [
     "/dashboard",
     "/users",
-    "/retable",
-    "/retable",
+    "/tables",
     "/prompts",
     "/service-requests",
     "/reports",

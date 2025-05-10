@@ -13,7 +13,7 @@ import { Manager, Role } from "@/lib/api/types/auth";
 import { Dealer } from "@/lib/api/types/dealers";
 import { Prompt, PromptStatusEnum } from "@/lib/api/types/prompts";
 import {
-  CreateTableRequest,
+  // CreateTableRequest,
   Seat,
   SeatStatus,
   Table,
@@ -30,20 +30,20 @@ import {
   Badge,
   ActionIcon,
   Card,
-  Modal,
-  Stack,
-  NumberInput,
+  // Modal,
+  // Stack,
+  // NumberInput,
   LoadingOverlay,
   Box,
 } from "@mantine/core";
-import { useForm } from "@mantine/form";
-import { useDisclosure } from "@mantine/hooks";
+// import { useForm } from "@mantine/form";
+// import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
   IconCheck,
   IconLogout2,
   IconMessage,
-  IconPlus,
+  // IconPlus,
   IconRefresh,
   IconUser,
   IconUserHexagon,
@@ -66,12 +66,12 @@ interface PlayerResponse {
 
 export default function RetablePage() {
   const [loading, setLoading] = useState(false);
-  const [opened, { open, close }] = useDisclosure(false);
+  // const [opened, { open, close }] = useDisclosure(false);
 
   const [tables, setTables] = useState<Table[]>([]);
   const [tableSeats, setTableSeats] = useState<Seat[]>([]);
   const [tablePrompts, setTablePrompts] = useState<Prompt[]>([]);
-  const [managers, setManagers] = useState<Manager[]>([]);
+  const [, setManagers] = useState<Manager[]>([]);
 
   // Track player responses
   const [playerResponses, setPlayerResponses] = useState<
@@ -307,24 +307,24 @@ export default function RetablePage() {
     }
   }, [isConnected]);
 
-  const form = useForm<CreateTableRequest>({
-    initialValues: {
-      name: "",
-      capacity: 4,
-      status: TableStatus.ACTIVE,
-      userId: "",
-    },
-    validate: {
-      name: (value) =>
-        !value.trim()
-          ? "Table name is required"
-          : value.trim().length < 2
-          ? "Name must be at least 2 characters"
-          : null,
-      capacity: (value) =>
-        !value || value <= 0 ? "Capacity must be greater than 0" : null,
-    },
-  });
+  // const form = useForm<CreateTableRequest>({
+  //   initialValues: {
+  //     name: "",
+  //     capacity: 4,
+  //     status: TableStatus.ACTIVE,
+  //     userId: "",
+  //   },
+  //   validate: {
+  //     name: (value) =>
+  //       !value.trim()
+  //         ? "Table name is required"
+  //         : value.trim().length < 2
+  //         ? "Name must be at least 2 characters"
+  //         : null,
+  //     capacity: (value) =>
+  //       !value || value <= 0 ? "Capacity must be greater than 0" : null,
+  //   },
+  // });
 
   useEffect(() => {
     // Fetch tables and prompts when the component mounts
@@ -524,54 +524,45 @@ export default function RetablePage() {
   };
 
   // Handle form submit for creating/updating table
-  const handleSubmit = async (values: CreateTableRequest) => {
-    try {
-      // Validate form before submission
-      const validationErrors = form.validate();
-      if (validationErrors.hasErrors) {
-        return; // Stop submission if there are errors
-      }
+  // const handleSubmit = async (values: CreateTableRequest) => {
+  //   try {
+  //     // Validate form before submission
+  //     const validationErrors = form.validate();
+  //     if (validationErrors.hasErrors) {
+  //       return; // Stop submission if there are errors
+  //     }
 
-      // Create new table
-      await tableService.createTableWithSeats(
-        {
-          name: values.name,
-          capacity: values.capacity,
-          status: values.userId ? TableStatus.ACTIVE : TableStatus.INACTIVE,
-          userId: values.userId,
-          // When initially creating, we only use the basic fields
-        },
-        +values.capacity
-      );
-      notifications.show({
-        title: "Success",
-        message: `Table "${values.name}" has been created`,
-        color: "green",
-      });
+  //     // Create new table
+  //     await tableService.createTableWithSeats(
+  //       {
+  //         name: values.name,
+  //         capacity: values.capacity,
+  //         status: values.userId ? TableStatus.ACTIVE : TableStatus.INACTIVE,
+  //         userId: values.userId,
+  //         // When initially creating, we only use the basic fields
+  //       },
+  //       +values.capacity
+  //     );
+  //     notifications.show({
+  //       title: "Success",
+  //       message: `Table "${values.name}" has been created`,
+  //       color: "green",
+  //     });
 
-      close();
-      form.reset();
-      fetchTables();
-    } catch (error) {
-      console.error("Failed to save table:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to save table";
-      notifications.show({
-        title: "Error",
-        message: errorMessage,
-        color: "red",
-      });
-    }
-  };
-
-  // Handle create new table
-  const handleCreate = () => {
-    setSelectedTable(null);
-    setTablePrompt(null);
-
-    form.reset();
-    open();
-  };
+  //     close();
+  //     form.reset();
+  //     fetchTables();
+  //   } catch (error) {
+  //     console.error("Failed to save table:", error);
+  //     const errorMessage =
+  //       error instanceof Error ? error.message : "Failed to save table";
+  //     notifications.show({
+  //       title: "Error",
+  //       message: errorMessage,
+  //       color: "red",
+  //     });
+  //   }
+  // };
 
   // New function to toggle seat status when clicked
   const toggleSeatStatus = async (seat: Seat, e: React.MouseEvent) => {
@@ -671,15 +662,6 @@ export default function RetablePage() {
       <LoadingOverlay visible={loading} />
       <Group justify="space-between" align="center" mb="lg">
         <Title order={2}>Tables Management</Title>
-        <Group>
-          <Button
-            variant="light"
-            leftSection={<IconPlus size="1rem" />}
-            onClick={handleCreate} // Un-commented the onClick event
-          >
-            Add Table
-          </Button>
-        </Group>
       </Group>
 
       <Grid gutter="md" columns={12}>
@@ -1072,7 +1054,7 @@ export default function RetablePage() {
       </Grid>
 
       {/* Table form modal */}
-      <Modal
+      {/* <Modal
         opened={opened}
         onClose={close}
         title="Add New Table"
@@ -1125,7 +1107,7 @@ export default function RetablePage() {
             </Button>
           </Stack>
         </form>
-      </Modal>
+      </Modal> */}
     </Box>
   );
 }
