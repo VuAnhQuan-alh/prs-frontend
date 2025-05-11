@@ -71,6 +71,7 @@ export default function RetablePage() {
   const [tables, setTables] = useState<Table[]>([]);
   const [tableSeats, setTableSeats] = useState<Seat[]>([]);
   const [tablePrompts, setTablePrompts] = useState<Prompt[]>([]);
+  const [tableDealers, setTableDealers] = useState<Dealer[]>([]);
   const [, setManagers] = useState<Manager[]>([]);
 
   // Track player responses
@@ -209,6 +210,7 @@ export default function RetablePage() {
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             });
+            fetchDealerHistory(payload.tableId);
           }
         }
       });
@@ -307,25 +309,6 @@ export default function RetablePage() {
     }
   }, [isConnected]);
 
-  // const form = useForm<CreateTableRequest>({
-  //   initialValues: {
-  //     name: "",
-  //     capacity: 4,
-  //     status: TableStatus.ACTIVE,
-  //     userId: "",
-  //   },
-  //   validate: {
-  //     name: (value) =>
-  //       !value.trim()
-  //         ? "Table name is required"
-  //         : value.trim().length < 2
-  //         ? "Name must be at least 2 characters"
-  //         : null,
-  //     capacity: (value) =>
-  //       !value || value <= 0 ? "Capacity must be greater than 0" : null,
-  //   },
-  // });
-
   useEffect(() => {
     // Fetch tables and prompts when the component mounts
     fetchTables();
@@ -338,8 +321,11 @@ export default function RetablePage() {
     if (selectedTable) {
       fetchSeats(selectedTable.id);
       setTablePrompt(selectedTable.promptId || null);
+      fetchDealerHistory(selectedTable.id);
     } else {
       setTableSeats([]);
+      setTablePrompt(null);
+      setTableDealers([]);
     }
   }, [selectedTable]);
 
@@ -442,10 +428,24 @@ export default function RetablePage() {
     }
   };
 
+  // Function to fetch dealer history for a table
+  const fetchDealerHistory = async (tableId: string) => {
+    try {
+      const dealers = await dealerService.getTableDealers(tableId);
+      setTableDealers(dealers);
+    } catch (error) {
+      console.error("Failed to fetch dealer history:", error);
+      notifications.show({
+        title: "Error",
+        message: "Failed to load dealer history",
+        color: "red",
+      });
+    }
+  };
+
   // Function to start dealer rotation
   const startDealerRotation = async (tableId: string, initSeatId?: string) => {
     try {
-      setCurrentDealer(() => null);
       setWaitDealer(() => ({ check: true, id: "" }));
 
       // Find or create the player-dealer prompt if it doesn't exist
@@ -478,8 +478,18 @@ export default function RetablePage() {
         const seatIndex = tableSeats.findIndex(
           (seat) => seat.id === currentDealer.seatId
         );
-        if (seatIndex !== -1 && seatIndex < tableSeats.length - 1) {
-          seatId = tableSeats[seatIndex].id;
+        if (
+          tableDealers.length == 2 &&
+          tableDealers[1].seatId === tableDealers[0].seatId
+        ) {
+          // if only one dealer, get the next seat
+          if (seatIndex !== -1 && seatIndex < tableSeats.length - 1) {
+            seatId = tableSeats[seatIndex + 1].id;
+          }
+        } else {
+          if (seatIndex !== -1 && seatIndex < tableSeats.length - 1) {
+            seatId = tableSeats[seatIndex].id;
+          }
         }
       } else if (!initSeatId) {
         seatId = tableSeats[1].id; // Default to the first seat if no next dealer found
@@ -503,6 +513,7 @@ export default function RetablePage() {
       setSelectedTable((table) =>
         table ? { ...table, promptId: dealerPrompt.id } : null
       );
+      setCurrentDealer(() => null);
 
       notifications.show({
         title: "Success",
@@ -522,47 +533,6 @@ export default function RetablePage() {
       });
     }
   };
-
-  // Handle form submit for creating/updating table
-  // const handleSubmit = async (values: CreateTableRequest) => {
-  //   try {
-  //     // Validate form before submission
-  //     const validationErrors = form.validate();
-  //     if (validationErrors.hasErrors) {
-  //       return; // Stop submission if there are errors
-  //     }
-
-  //     // Create new table
-  //     await tableService.createTableWithSeats(
-  //       {
-  //         name: values.name,
-  //         capacity: values.capacity,
-  //         status: values.userId ? TableStatus.ACTIVE : TableStatus.INACTIVE,
-  //         userId: values.userId,
-  //         // When initially creating, we only use the basic fields
-  //       },
-  //       +values.capacity
-  //     );
-  //     notifications.show({
-  //       title: "Success",
-  //       message: `Table "${values.name}" has been created`,
-  //       color: "green",
-  //     });
-
-  //     close();
-  //     form.reset();
-  //     fetchTables();
-  //   } catch (error) {
-  //     console.error("Failed to save table:", error);
-  //     const errorMessage =
-  //       error instanceof Error ? error.message : "Failed to save table";
-  //     notifications.show({
-  //       title: "Error",
-  //       message: errorMessage,
-  //       color: "red",
-  //     });
-  //   }
-  // };
 
   // New function to toggle seat status when clicked
   const toggleSeatStatus = async (seat: Seat, e: React.MouseEvent) => {

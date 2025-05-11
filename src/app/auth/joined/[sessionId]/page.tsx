@@ -449,21 +449,21 @@ export default function UserPlayerPage({
             sessions.name || sessions.user?.name
           );
 
-          if (response === ResponseType.YES) {
-            notifications.show({
-              title: "Dealer Status",
-              message: "You will be the dealer for the next round.",
-              color: "green",
-              autoClose: false,
-            });
-          } else {
-            notifications.show({
-              title: "Dealer Status",
-              message:
-                "You declined to be the dealer. The rotation will continue.",
-              color: "blue",
-            });
-          }
+          // if (response === ResponseType.YES) {
+          //   notifications.show({
+          //     title: "Dealer Status",
+          //     message: "You will be the dealer for the next round.",
+          //     color: "green",
+          //     autoClose: false,
+          //   });
+          // } else {
+          //   notifications.show({
+          //     title: "Dealer Status",
+          //     message:
+          //       "You declined to be the dealer. The rotation will continue.",
+          //     color: "blue",
+          //   });
+          // }
         }
       }
     } catch (error) {
