@@ -156,13 +156,6 @@ export function useWebSocket() {
           },
         };
         setLastMessage(message);
-
-        // Show notification for session ended
-        showNotification({
-          title: "Session Ended",
-          message: data.message || "Your session has ended",
-          color: "blue",
-        });
       });
 
       // Add handlers for seat status updates
