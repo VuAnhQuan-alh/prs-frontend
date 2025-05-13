@@ -143,7 +143,7 @@ export default function Dashboard() {
         // limit: 5,
         // sort: "createdAt:desc",
       });
-      setServiceRequests(data);
+      setServiceRequests(data.docs);
     } catch (error) {
       console.error("Failed to fetch service requests:", error);
     } finally {

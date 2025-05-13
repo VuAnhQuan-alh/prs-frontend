@@ -14,6 +14,7 @@ import {
   ServiceRequestType,
   CreateServiceRequestRequest,
   UpdateServiceRequestRequest,
+  ServiceRequestFilters,
 } from "@/lib/api/types/service-requests";
 import { Seat, Table as TableType } from "@/lib/api/types/tables"; // Add this import
 import {
@@ -34,6 +35,7 @@ import {
   Text,
   Card,
   LoadingOverlay,
+  Pagination,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
@@ -72,6 +74,11 @@ export default function ServiceRequestsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<string | null>("all");
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalRequest, setTotalRequest] = useState(0);
+
   const createForm = useForm<CreateServiceRequestRequest>({
     initialValues: {
       seatId: "",
@@ -104,7 +111,7 @@ export default function ServiceRequestsPage() {
   useEffect(() => {
     fetchServiceRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, currentPage, pageSize]);
 
   // Function to fetch tables from API
   const fetchTables = async () => {
@@ -128,7 +135,7 @@ export default function ServiceRequestsPage() {
         role: Role.USER,
         isActive: true,
       });
-      setUsers(data);
+      setUsers(data.docs);
     } catch (error) {
       console.error("Failed to fetch users:", error);
       const errorMessage =
@@ -175,13 +182,20 @@ export default function ServiceRequestsPage() {
     try {
       setLoading(true);
 
-      let filters = {};
+      let filters: ServiceRequestFilters = {
+        page: currentPage,
+        limit: pageSize,
+      };
       if (activeTab !== "all" && activeTab) {
-        filters = { status: activeTab as ServiceRequestStatus };
+        filters = {
+          ...filters,
+          status: activeTab as ServiceRequestStatus,
+        };
       }
 
       const data = await serviceRequestService.getAll(filters);
-      setServiceRequests(data);
+      setServiceRequests(data.docs);
+      setTotalRequest(data.total);
     } catch (error) {
       console.error("Failed to fetch service requests:", error);
       notifications.show({
@@ -354,7 +368,13 @@ export default function ServiceRequestsPage() {
       </Group>
 
       <Group justify="apart" mb="md">
-        <Tabs value={activeTab} onChange={setActiveTab}>
+        <Tabs
+          value={activeTab}
+          onChange={(value) => {
+            setActiveTab(value);
+            setCurrentPage(1); // Reset to first page when changing tab
+          }}
+        >
           <Tabs.List>
             <Tabs.Tab value="all">All Requests</Tabs.Tab>
             <Tabs.Tab value={ServiceRequestStatus.OPEN}>Open</Tabs.Tab>
@@ -384,7 +404,7 @@ export default function ServiceRequestsPage() {
                 <Table.Th>Status</Table.Th>
                 <Table.Th>Created</Table.Th>
                 <Table.Th>Assigned To</Table.Th>
-                <Table.Th>Actions</Table.Th>
+                <Table.Th ta="center">Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -416,7 +436,7 @@ export default function ServiceRequestsPage() {
                       {request?.assigned?.name || "Unassigned"}
                     </Table.Td>
                     <Table.Td>
-                      <Group gap="xs">
+                      <Group gap="xs" justify="center">
                         <ActionIcon
                           variant="light"
                           color="blue"
@@ -458,6 +478,36 @@ export default function ServiceRequestsPage() {
               )}
             </Table.Tbody>
           </Table>
+
+          <Group justify="space-between" mt="md">
+            <Text size="sm" c="dimmed">
+              Showing {serviceRequests.length} of {totalRequest} requests
+            </Text>
+            <Group>
+              <Select
+                size="xs"
+                value={String(pageSize)}
+                onChange={(value) => {
+                  setPageSize(Number(value));
+                  setCurrentPage(1); // Reset to first page when changing page size
+                }}
+                data={["5", "10", "20", "50"].map((size) => ({
+                  value: size,
+                  label: size,
+                }))}
+                style={{ width: 100 }}
+              />
+              <Pagination
+                value={currentPage}
+                onChange={(page) => {
+                  setCurrentPage(page);
+                }}
+                total={Math.ceil(totalRequest / pageSize)}
+                size="sm"
+                withEdges
+              />
+            </Group>
+          </Group>
         </Box>
       </Card>
 

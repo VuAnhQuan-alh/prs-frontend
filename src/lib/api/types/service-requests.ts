@@ -68,4 +68,6 @@ export interface ServiceRequestFilters {
   assignId?: string;
   createdAtFrom?: string;
   createdAtTo?: string;
+  page?: number;
+  limit?: number;
 }

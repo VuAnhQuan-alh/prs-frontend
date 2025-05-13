@@ -9,8 +9,10 @@ import {
 class UserService {
   private BASE_URL = "/users";
 
-  async getAll(filters?: UserFilters): Promise<User[]> {
-    return await apiClient.get<User[]>(this.BASE_URL, {
+  async getAll(
+    filters?: UserFilters
+  ): Promise<{ docs: User[]; total: number }> {
+    return await apiClient.get<{ docs: User[]; total: number }>(this.BASE_URL, {
       params: filters,
     });
   }

@@ -9,10 +9,15 @@ import {
 class ServiceRequestService {
   private BASE_URL = "/service-requests";
 
-  async getAll(filters?: ServiceRequestFilters): Promise<ServiceRequest[]> {
-    return await apiClient.get<ServiceRequest[]>(this.BASE_URL, {
-      params: filters,
-    });
+  async getAll(
+    filters?: ServiceRequestFilters
+  ): Promise<{ docs: ServiceRequest[]; total: number }> {
+    return await apiClient.get<{ docs: ServiceRequest[]; total: number }>(
+      this.BASE_URL,
+      {
+        params: filters,
+      }
+    );
   }
 
   async getById(id: string): Promise<ServiceRequest> {

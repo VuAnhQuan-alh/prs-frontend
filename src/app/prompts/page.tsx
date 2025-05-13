@@ -60,7 +60,7 @@ export default function PromptsPage() {
       title: "",
       content: "",
       tableId: "",
-      status: PromptStatusEnum.PENDING,
+      status: PromptStatusEnum.PROCESSED,
     },
     validate: {
       content: (value) => (!value ? "Content is required" : null),

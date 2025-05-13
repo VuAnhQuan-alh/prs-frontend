@@ -88,7 +88,7 @@ export default function ReportsPage() {
       try {
         const userTable = await userService.getAll({ role: Role.TABLE });
         setUserRole(
-          userTable.map((user) => ({
+          userTable.docs.map((user) => ({
             value: user.id,
             label: user.name,
           }))
@@ -360,10 +360,10 @@ export default function ReportsPage() {
               <Table.Tr>
                 <Table.Th>Table</Table.Th>
                 <Table.Th>Seat</Table.Th>
-                <Table.Th>Guest</Table.Th>
+                {/* <Table.Th>Guest</Table.Th> */}
                 <Table.Th>Prompt</Table.Th>
-                <Table.Th>Response</Table.Th>
-                <Table.Th>Timestamp</Table.Th>
+                <Table.Th ta="center">Response</Table.Th>
+                <Table.Th ta="end">Timestamp</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -377,11 +377,11 @@ export default function ReportsPage() {
                           String.fromCharCode(64 + response.seat.number)
                         : "-"}
                     </Table.Td>
-                    <Table.Td>
+                    {/* <Table.Td>
                       {response.session?.name || "Unknown Guest"}
-                    </Table.Td>
+                    </Table.Td> */}
                     <Table.Td>{response.prompt?.title || "-"}</Table.Td>
-                    <Table.Td>
+                    <Table.Td ta="center">
                       {response.type === ResponseType.YES ? (
                         <Badge color="green">YES</Badge>
                       ) : response.type === ResponseType.NO ? (
@@ -390,7 +390,7 @@ export default function ReportsPage() {
                         <Badge color="yellow">SERVICE</Badge>
                       )}
                     </Table.Td>
-                    <Table.Td>
+                    <Table.Td ta="end">
                       {new Date(response.createdAt).toLocaleString()}
                     </Table.Td>
                   </Table.Tr>

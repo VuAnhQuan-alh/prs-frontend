@@ -19,6 +19,7 @@ import {
   ActionIcon,
   Tooltip,
   Switch,
+  Pagination,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
@@ -35,10 +36,18 @@ import {
   User,
   UpdateUserRequest,
   CreateUserRequest,
+  UserFilters,
 } from "@/lib/api/types/users";
 import { Role } from "@/lib/api/types/auth";
 import { userService } from "@/lib/api/services/user-service";
 import { useAccessControl } from "@/contexts/AccessControlContext";
+
+// Role color mapping for badges
+const roleColors: Record<string, string> = {
+  [Role.ADMIN]: "red",
+  [Role.TABLE]: "blue",
+  [Role.USER]: "gray",
+};
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -50,13 +59,13 @@ export default function UsersPage() {
   const [activeTab, setActiveTab] = useState<string | null>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { currentUser } = useAccessControl();
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const roleColors: Record<string, string> = {
-    [Role.ADMIN]: "red",
-    [Role.TABLE]: "blue",
-    [Role.USER]: "gray",
-  };
+  const { currentUser } = useAccessControl();
 
   const createForm = useForm<CreateUserRequest>({
     initialValues: {
@@ -101,26 +110,32 @@ export default function UsersPage() {
     mode: "controlled",
   });
 
-  // Fetch users on component mount and when active tab changes
+  // Fetch users on component mount and when active tab, page, or page size changes
   useEffect(() => {
     fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, currentPage, pageSize]);
 
   // Function to fetch users from API
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      let filters = {};
+      let filters: UserFilters = {
+        page: currentPage,
+        limit: pageSize,
+      };
 
       if (activeTab !== "all" && activeTab) {
         filters = {
-          role: activeTab,
+          ...filters,
+          role: activeTab as Role,
         };
       }
 
       const data = await userService.getAll(filters);
-      setUsers(data);
+      setUsers(data.docs);
+      setTotalItems(data.total);
+      setTotalPages(Math.ceil(data.total / pageSize));
     } catch (error) {
       console.error("Failed to fetch users:", error);
       const errorMessage =
@@ -135,7 +150,14 @@ export default function UsersPage() {
     }
   };
 
-  // Filter users based on search query
+  // When search query changes, reset to first page and apply search
+  useEffect(() => {
+    if (searchQuery) {
+      setCurrentPage(1);
+    }
+  }, [searchQuery]);
+
+  // Filter users based on search query (client-side filtering for the current page)
   const filteredUsers = users.filter((user) => {
     if (!searchQuery) return true;
 
@@ -278,7 +300,13 @@ export default function UsersPage() {
       </Group>
 
       <Group justify="apart" mb="md">
-        <Tabs value={activeTab} onChange={setActiveTab}>
+        <Tabs
+          value={activeTab}
+          onChange={(value) => {
+            setActiveTab(value);
+            setCurrentPage(1); // Reset to first page when changing tab
+          }}
+        >
           <Tabs.List>
             <Tabs.Tab value="all" leftSection={<IconUsers size="0.8rem" />}>
               All
@@ -330,7 +358,7 @@ export default function UsersPage() {
             <Table.Tbody>
               {filteredUsers.length === 0 ? (
                 <Table.Tr>
-                  <Table.Td colSpan={6} align="center">
+                  <Table.Td colSpan={7} align="center">
                     No users found
                   </Table.Td>
                 </Table.Tr>
@@ -348,7 +376,46 @@ export default function UsersPage() {
                       <Badge color={roleColors[user.role]}>{user.role}</Badge>
                     </Table.Td>
                     <Table.Td>
-                      <Switch checked={user.isActive} onChange={() => {}} />
+                      <Switch
+                        checked={user.isActive}
+                        disabled={
+                          currentUser?.role !== user.role &&
+                          currentUser?.role !== Role.ADMIN
+                        }
+                        onChange={() => {
+                          // Handle switch change if needed
+                          const newIsActive = !user.isActive;
+                          userService
+                            .update(user.id, { isActive: newIsActive })
+                            .then(() => {
+                              notifications.show({
+                                title: "Success",
+                                message: `User ${
+                                  newIsActive ? "activated" : "deactivated"
+                                } successfully`,
+                                color: "green",
+                              });
+                              setUsers((prev) =>
+                                prev.map((u) =>
+                                  u.id === user.id
+                                    ? { ...u, isActive: newIsActive }
+                                    : u
+                                )
+                              );
+                            })
+                            .catch((error) => {
+                              console.error(
+                                "Failed to update user status:",
+                                error
+                              );
+                              notifications.show({
+                                title: "Error",
+                                message: "Failed to update user status",
+                                color: "red",
+                              });
+                            });
+                        }}
+                      />
                     </Table.Td>
                     <Table.Td>
                       {format(new Date(user.createdAt), "MMM dd, yyyy")}
@@ -384,6 +451,37 @@ export default function UsersPage() {
               )}
             </Table.Tbody>
           </Table>
+
+          {/* Pagination - only show if there's data and potentially more than one page */}
+          {users.length > 0 && (
+            <Group justify="space-between" mt="md">
+              <Text size="sm" c="dimmed">
+                Showing {users.length} of {totalItems} users
+              </Text>
+              <Group>
+                <Select
+                  size="xs"
+                  value={String(pageSize)}
+                  onChange={(value) => {
+                    setPageSize(Number(value));
+                    setCurrentPage(1); // Reset to first page when changing page size
+                  }}
+                  data={["5", "10", "20", "50"].map((size) => ({
+                    value: size,
+                    label: size,
+                  }))}
+                  style={{ width: 100 }}
+                />
+                <Pagination
+                  value={currentPage}
+                  onChange={setCurrentPage}
+                  total={totalPages}
+                  size="sm"
+                  withEdges
+                />
+              </Group>
+            </Group>
+          )}
         </Box>
       </Card>
 

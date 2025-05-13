@@ -395,7 +395,7 @@ export default function RetablePage() {
     try {
       // Get users with manager role using the userService
       const managers = await userService.getAll({ role: Role.TABLE });
-      setManagers(managers);
+      setManagers(managers.docs);
     } catch (error) {
       console.error("Failed to fetch managers:", error);
       const errorMessage =
