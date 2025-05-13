@@ -448,6 +448,10 @@ export default function RetablePage() {
     try {
       setWaitDealer(() => ({ check: true, id: "" }));
 
+      const tableSeatActive = tableSeats.filter(
+        (seat) => seat.number !== 0 && seat.user
+      );
+
       // Find or create the player-dealer prompt if it doesn't exist
       let dealerPrompt = tablePrompts.find(
         (prompt) =>
@@ -475,7 +479,7 @@ export default function RetablePage() {
       // get seatId by next current dealer, next current dealer is the one who is
       // currently dealer
       if (currentDealer && !initSeatId) {
-        const seatIndex = tableSeats.findIndex(
+        const seatIndex = tableSeatActive.findIndex(
           (seat) => seat.id === currentDealer.seatId
         );
         if (
@@ -483,16 +487,16 @@ export default function RetablePage() {
           tableDealers[1].seatId === tableDealers[0].seatId
         ) {
           // if only one dealer, get the next seat
-          if (seatIndex !== -1 && seatIndex < tableSeats.length - 1) {
-            seatId = tableSeats[seatIndex + 1].id;
+          if (seatIndex !== -1 && seatIndex < tableSeatActive.length - 1) {
+            seatId = tableSeatActive[seatIndex + 1].id;
           }
         } else {
-          if (seatIndex !== -1 && seatIndex < tableSeats.length - 1) {
-            seatId = tableSeats[seatIndex].id;
+          if (seatIndex !== -1 && seatIndex < tableSeatActive.length - 1) {
+            seatId = tableSeatActive[seatIndex].id;
           }
         }
       } else if (!initSeatId) {
-        seatId = tableSeats[1].id; // Default to the first seat if no next dealer found
+        seatId = tableSeatActive[1].id; // Default to the first seat if no next dealer found
       }
 
       if (seatId) {
@@ -671,6 +675,13 @@ export default function RetablePage() {
                             ? { ...table, status: TableStatus.ACTIVE }
                             : null
                         );
+                        setTables((prev) =>
+                          prev.map((table) =>
+                            table.id === selectedTable.id
+                              ? { ...table, status: TableStatus.ACTIVE }
+                              : table
+                          )
+                        );
                         notifications.show({
                           title: "Success",
                           message: `Session for table ${selectedTable.name} activated`,
@@ -697,6 +708,13 @@ export default function RetablePage() {
                           table
                             ? { ...table, status: TableStatus.MAINTENANCE }
                             : null
+                        );
+                        setTables((prev) =>
+                          prev.map((table) =>
+                            table.id === selectedTable.id
+                              ? { ...table, status: TableStatus.MAINTENANCE }
+                              : table
+                          )
                         );
                         notifications.show({
                           title: "Success",
@@ -728,6 +746,13 @@ export default function RetablePage() {
                           table
                             ? { ...table, status: TableStatus.INACTIVE }
                             : null
+                        );
+                        setTables((prev) =>
+                          prev.map((table) =>
+                            table.id === selectedTable.id
+                              ? { ...table, status: TableStatus.INACTIVE }
+                              : table
+                          )
                         );
                         notifications.show({
                           title: "Success",

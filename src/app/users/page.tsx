@@ -20,6 +20,7 @@ import {
   Tooltip,
   Switch,
   Pagination,
+  PasswordInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
@@ -530,7 +531,7 @@ export default function UsersPage() {
                 {...createForm.getInputProps("lastName")}
               />
             </Group>
-            <TextInput
+            <PasswordInput
               label="Password"
               placeholder="Password"
               type="password"
@@ -608,7 +609,7 @@ export default function UsersPage() {
                 {...editForm.getInputProps("lastName")}
               />
             </Group>
-            <TextInput
+            <PasswordInput
               label="Password"
               placeholder="Leave blank to keep current password"
               type="password"

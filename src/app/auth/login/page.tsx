@@ -25,8 +25,8 @@ export default function LoginPage() {
 
   const form = useForm({
     initialValues: {
-      email: "john@admin.prs",
-      password: "admin123",
+      email: "",
+      password: "",
     },
     validate: {
       email: (value) => (!value ? "Email is required" : null),
