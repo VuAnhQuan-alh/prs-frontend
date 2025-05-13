@@ -1,22 +1,23 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+
+import { authService } from "@/lib/api/services";
+import { Role } from "@/lib/api/types/auth";
 import {
-  TextInput,
-  PasswordInput,
-  Button,
   Box,
-  Title,
+  Button,
   Paper,
+  PasswordInput,
   Text,
+  TextInput,
+  Title,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
-import { useRouter } from "next/navigation";
-import { authService } from "@/lib/api/services";
-import Link from "next/link";
-import { Role } from "@/lib/api/types/auth";
-import Image from "next/image";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -87,7 +88,7 @@ export default function LoginPage() {
             label="Email"
             placeholder="Your email"
             required
-            mb="md"
+            mb="sm"
             {...form.getInputProps("email")}
           />
 
@@ -95,9 +96,18 @@ export default function LoginPage() {
             label="Password"
             placeholder="Your password"
             required
-            mb="xl"
+            mb="sm"
             {...form.getInputProps("password")}
           />
+
+          <Box className="flex justify-end mb-4">
+            <Link
+              href="/auth/forgot-password"
+              className="text-blue-500 hover:underline text-sm"
+            >
+              Forgot password?
+            </Link>
+          </Box>
 
           <Button fullWidth type="submit" loading={loading}>
             Sign in

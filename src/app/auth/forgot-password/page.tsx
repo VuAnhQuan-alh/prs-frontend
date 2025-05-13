@@ -1,58 +1,89 @@
 "use client";
+
+import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
+
 import { authService } from "@/lib/api/services/auth-service";
+import { Box, Button, Paper, Text, TextInput, Title } from "@mantine/core";
+import { useForm } from "@mantine/form";
+import { notifications } from "@mantine/notifications";
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState("");
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm({
+    initialValues: {
+      email: "",
+    },
+    validate: {
+      email: (value) => (!value ? "Email is required" : null),
+    },
+  });
+
+  const handleSubmit = async (values: { email: string }) => {
     setLoading(true);
-    setError("");
     try {
-      await authService.forgotPassword(email);
-      setSuccess(true);
+      await authService.forgotPassword(values.email);
+      notifications.show({
+        title: "Reset link sent",
+        message:
+          "If the email exists, password reset instructions have been sent.",
+        color: "green",
+        autoClose: false,
+      });
+      form.reset();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Có lỗi xảy ra";
-      setError(errorMessage);
+      const errorMessage =
+        err instanceof Error ? err.message : "An error occurred";
+      notifications.show({
+        title: "Error",
+        message: errorMessage,
+        color: "red",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-16 p-6 bg-white rounded shadow">
-      <h2 className="text-2xl font-bold mb-4">Quên mật khẩu</h2>
-      {success ? (
-        <div className="text-green-600">
-          Nếu email tồn tại, hướng dẫn đặt lại mật khẩu đã được gửi.
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block mb-1 font-medium">Email</label>
-            <input
-              type="email"
-              className="w-full border px-3 py-2 rounded"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </div>
-          {error && <div className="text-red-600 text-sm">{error}</div>}
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-            disabled={loading}
-          >
-            {loading ? "Đang gửi..." : "Gửi hướng dẫn"}
-          </button>
+    <Box className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+      <Image
+        src="/images/logo-auth.png"
+        width="84"
+        height="100"
+        alt="logo auth"
+      />
+
+      <Paper radius="md" p="xl" className="w-full max-w-md mt-20">
+        <Title ta="center" c="#228ED0" order={2} mb="sm">
+          Forgot Password
+        </Title>
+        <Text ta="center" c="#454C50" size="lg" fw={500} mb="xl">
+          Enter your email to receive reset instructions
+        </Text>
+
+        <form onSubmit={form.onSubmit(handleSubmit)} autoComplete="off">
+          <TextInput
+            label="Email"
+            placeholder="Your email"
+            required
+            mb="xl"
+            {...form.getInputProps("email")}
+          />
+
+          <Button fullWidth type="submit" loading={loading}>
+            Send Reset Link
+          </Button>
         </form>
-      )}
-    </div>
+
+        <Text c="dimmed" size="sm" ta="center" mt="md">
+          Remember your password?{" "}
+          <Link href="/auth/login" className="text-blue-500 hover:underline">
+            Back to login
+          </Link>
+        </Text>
+      </Paper>
+    </Box>
   );
 }

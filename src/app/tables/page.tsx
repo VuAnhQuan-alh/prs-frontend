@@ -57,7 +57,7 @@ export default function TablesPage() {
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
   const [managers, setManagers] = useState<Manager[]>([]);
-  const [loadingManagers, setLoadingManagers] = useState(false);
+  // const [loadingManagers, setLoadingManagers] = useState(false);
 
   // Delete confirmation modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -100,19 +100,19 @@ export default function TablesPage() {
         !value || value <= 0 ? "Capacity must be greater than 0" : null,
     },
   });
-  const watchUserId = form.getInputProps("userId").value;
+  // const watchUserId = form.getInputProps("userId").value;
 
-  // update stable status active when userId is assigned
-  useEffect(() => {
-    if (!selectedTable) return;
+  // // update stable status active when userId is assigned
+  // useEffect(() => {
+  //   if (!selectedTable) return;
 
-    if (watchUserId) {
-      form.setFieldValue("status", TableStatus.ACTIVE);
-    } else {
-      form.setFieldValue("status", TableStatus.INACTIVE);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchUserId, selectedTable]);
+  //   if (watchUserId) {
+  //     form.setFieldValue("status", TableStatus.ACTIVE);
+  //   } else {
+  //     form.setFieldValue("status", TableStatus.INACTIVE);
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [watchUserId, selectedTable]);
 
   useEffect(() => {
     fetchManagers();
@@ -154,7 +154,6 @@ export default function TablesPage() {
   // Function to fetch managers from API
   const fetchManagers = async () => {
     try {
-      setLoadingManagers(true);
       // Get users with manager role using the userService
       const managers = await userService.getAll({ role: Role.TABLE });
       setManagers(managers);
@@ -167,8 +166,6 @@ export default function TablesPage() {
         message: errorMessage,
         color: "red",
       });
-    } finally {
-      setLoadingManagers(false);
     }
   };
 
@@ -261,13 +258,13 @@ export default function TablesPage() {
       capacity: table.capacity,
       status: table.status,
       userId: table.userId || "",
-      isVip: Boolean(
-        table.seats?.some((seat) => seat.status === SeatStatus.ACTIVE)
-      ),
-      adminNotes: `Table #${table.id.substring(
-        0,
-        4
-      )}... - Last updated: ${new Date(table.updatedAt).toLocaleString()}`,
+      // isVip: Boolean(
+      //   table.seats?.some((seat) => seat.status === SeatStatus.ACTIVE)
+      // ),
+      // adminNotes: `Table #${table.id.substring(
+      //   0,
+      //   4
+      // )}... - Last updated: ${new Date(table.updatedAt).toLocaleString()}`,
     });
     open();
   };
@@ -552,7 +549,7 @@ export default function TablesPage() {
 
             {selectedTable && (
               <>
-                <Select
+                {/* <Select
                   label="Assign Manager"
                   placeholder="Select a manager"
                   data={
@@ -570,15 +567,15 @@ export default function TablesPage() {
                   {...form.getInputProps("userId")}
                   description="When a manager is assigned, table becomes active"
                   clearable
-                />
+                /> */}
 
                 <Select
                   label="Status"
                   placeholder="Select status"
                   data={[
-                    { value: TableStatus.INACTIVE, label: "Inactive" },
                     { value: TableStatus.ACTIVE, label: "Active" },
-                    { value: TableStatus.MAINTENANCE, label: "Maintenance" },
+                    { value: TableStatus.INACTIVE, label: "Inactive" },
+                    // { value: TableStatus.MAINTENANCE, label: "Maintenance" },
                   ]}
                   defaultValue={selectedTable.status}
                   disabled={!!form.values.userId} // Disable if a manager is assigned

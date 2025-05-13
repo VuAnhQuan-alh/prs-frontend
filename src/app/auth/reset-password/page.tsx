@@ -1,26 +1,78 @@
 "use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+
 import { authService } from "@/lib/api/services/auth-service";
-import { useSearchParams } from "next/navigation";
+import {
+  Alert,
+  Box,
+  Button,
+  Paper,
+  PasswordInput,
+  Text,
+  Title,
+} from "@mantine/core";
+import { useForm } from "@mantine/form";
+import { notifications } from "@mantine/notifications";
+import { IconAlertCircle } from "@tabler/icons-react";
 
 export default function ResetPasswordPage() {
-  const [newPassword, setNewPassword] = useState("");
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const token = searchParams.get("token") || "";
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm({
+    initialValues: {
+      password: "",
+      confirmPassword: "",
+    },
+    validate: {
+      password: (value) =>
+        !value
+          ? "Password is required"
+          : value.length < 6
+          ? "Password must be at least 6 characters"
+          : null,
+      confirmPassword: (value, values) =>
+        !value
+          ? "Please confirm your password"
+          : value !== values.password
+          ? "Passwords do not match"
+          : null,
+    },
+  });
+
+  const handleSubmit = async (values: {
+    password: string;
+    confirmPassword: string;
+  }) => {
     setLoading(true);
-    setError("");
     try {
-      await authService.resetPassword(token, newPassword);
+      await authService.resetPassword(token, values.password);
       setSuccess(true);
+      notifications.show({
+        title: "Success",
+        message: "Your password has been reset successfully.",
+        color: "green",
+        autoClose: false,
+      });
+      // Redirect to login page after 3 seconds
+      setTimeout(() => {
+        router.push("/auth/login");
+      }, 3000);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Có lỗi xảy ra";
-      setError(errorMessage);
+      const errorMessage =
+        err instanceof Error ? err.message : "An error occurred";
+      notifications.show({
+        title: "Error",
+        message: errorMessage,
+        color: "red",
+      });
     } finally {
       setLoading(false);
     }
@@ -28,43 +80,83 @@ export default function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="max-w-md mx-auto mt-16 p-6 bg-white rounded shadow text-red-600">
-        Thiếu token reset mật khẩu.
-      </div>
+      <Box className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+        <Image
+          src="/images/logo-auth.png"
+          width="84"
+          height="100"
+          alt="logo auth"
+        />
+        <Paper radius="md" p="xl" className="w-full max-w-md mt-20">
+          <Alert
+            icon={<IconAlertCircle size="1rem" />}
+            title="Error"
+            color="red"
+          >
+            Missing password reset token. Please use the link from your email.
+          </Alert>
+          <Box mt="lg">
+            <Link href="/auth/login" className="text-blue-500 hover:underline">
+              Back to login
+            </Link>
+          </Box>
+        </Paper>
+      </Box>
     );
   }
 
   return (
-    <div className="max-w-md mx-auto mt-16 p-6 bg-white rounded shadow">
-      <h2 className="text-2xl font-bold mb-4">Đặt lại mật khẩu</h2>
-      {success ? (
-        <div className="text-green-600">
-          Mật khẩu đã được đặt lại thành công. Bạn có thể đăng nhập lại.
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block mb-1 font-medium">Mật khẩu mới</label>
-            <input
-              type="password"
-              className="w-full border px-3 py-2 rounded"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+    <Box className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+      <Image
+        src="/images/logo-auth.png"
+        width="84"
+        height="100"
+        alt="logo auth"
+      />
+
+      <Paper radius="md" p="xl" className="w-full max-w-md mt-20">
+        <Title ta="center" c="#228ED0" order={2} mb="sm">
+          Reset Password
+        </Title>
+        <Text ta="center" c="#454C50" size="lg" fw={500} mb="xl">
+          {success
+            ? "Your password has been reset successfully"
+            : "Please enter your new password"}
+        </Text>
+
+        {success ? (
+          <Box>
+            <Text ta="center" c="dimmed" mb="md">
+              You will be redirected to login page in a moment...
+            </Text>
+            <Button component={Link} href="/auth/login" fullWidth>
+              Back to Login
+            </Button>
+          </Box>
+        ) : (
+          <form onSubmit={form.onSubmit(handleSubmit)} autoComplete="off">
+            <PasswordInput
+              label="New Password"
+              placeholder="Enter your new password"
               required
-              minLength={6}
-              disabled={loading}
+              mb="md"
+              {...form.getInputProps("password")}
             />
-          </div>
-          {error && <div className="text-red-600 text-sm">{error}</div>}
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-            disabled={loading}
-          >
-            {loading ? "Đang xử lý..." : "Đặt lại mật khẩu"}
-          </button>
-        </form>
-      )}
-    </div>
+
+            <PasswordInput
+              label="Confirm Password"
+              placeholder="Confirm your new password"
+              required
+              mb="xl"
+              {...form.getInputProps("confirmPassword")}
+            />
+
+            <Button fullWidth type="submit" loading={loading}>
+              Reset Password
+            </Button>
+          </form>
+        )}
+      </Paper>
+    </Box>
   );
 }

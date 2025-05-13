@@ -208,7 +208,7 @@ export default function SeatSetupPage() {
             disabled={loadingSeat || loading || !tableIdWatch}
             {...form.getInputProps("seatId")}
             clearable
-            mb="md"
+            mb="xl"
           />
 
           <Button fullWidth type="submit" loading={loading}>

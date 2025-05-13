@@ -666,6 +666,11 @@ export default function RetablePage() {
                         action: "ACTIVATE",
                       })
                       .then(() => {
+                        setSelectedTable((table) =>
+                          table
+                            ? { ...table, status: TableStatus.ACTIVE }
+                            : null
+                        );
                         notifications.show({
                           title: "Success",
                           message: `Session for table ${selectedTable.name} activated`,
@@ -688,6 +693,11 @@ export default function RetablePage() {
                         action: "PAUSE",
                       })
                       .then(() => {
+                        setSelectedTable((table) =>
+                          table
+                            ? { ...table, status: TableStatus.MAINTENANCE }
+                            : null
+                        );
                         notifications.show({
                           title: "Success",
                           message: `Session for table ${selectedTable.name} paused`,
@@ -714,6 +724,11 @@ export default function RetablePage() {
                         action: "TERMINATE",
                       })
                       .then(() => {
+                        setSelectedTable((table) =>
+                          table
+                            ? { ...table, status: TableStatus.INACTIVE }
+                            : null
+                        );
                         notifications.show({
                           title: "Success",
                           message: `Session for table ${selectedTable.name} terminated`,
