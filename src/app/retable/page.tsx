@@ -838,10 +838,16 @@ export default function RetablePage() {
                 flex={1}
                 label="Prompt PSR"
                 placeholder="Select prompt"
-                data={tablePrompts.map((prompt) => ({
-                  value: prompt.id,
-                  label: prompt.title,
-                }))}
+                data={tablePrompts
+                  .filter(
+                    (prompt) =>
+                      !prompt.title.toLowerCase().includes("player-dealer") &&
+                      !prompt.content.toLowerCase().includes("player-dealer")
+                  )
+                  .map((prompt) => ({
+                    value: prompt.id,
+                    label: prompt.title,
+                  }))}
                 value={tablePrompt || ""}
                 searchable
                 clearable
