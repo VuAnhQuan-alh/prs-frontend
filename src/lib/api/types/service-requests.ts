@@ -21,17 +21,14 @@ export interface ServiceRequest {
 }
 
 export enum ServiceRequestType {
-  ASSISTANCE = "ASSISTANCE",
-  COMPLAINT = "COMPLAINT",
-  QUESTION = "QUESTION",
-  TECHNICAL_ISSUE = "TECHNICAL_ISSUE",
-  OTHER = "OTHER",
+  PLAYER_DEALER = "PLAYER_DEALER",
+  TABLE_ADMIN = "TABLE_ADMIN",
 }
 
 export enum ServiceRequestStatus {
-  OPEN = "PENDING",
+  OPEN = "OPEN",
   IN_PROGRESS = "IN_PROGRESS",
-  RESOLVED = "COMPLETED",
+  COMPLETED = "COMPLETED",
   CANCELLED = "CANCELLED",
 }
 
@@ -45,12 +42,12 @@ export enum ServiceRequestPriority {
 export interface CreateServiceRequestRequest {
   type: ServiceRequestType;
   description: string;
-  priority?: ServiceRequestPriority;
   seatId: string;
   sessionId: string;
 }
 
 export interface UpdateServiceRequestRequest {
+  id?: string;
   status?: ServiceRequestStatus | null;
   priority?: ServiceRequestPriority;
   description?: string;

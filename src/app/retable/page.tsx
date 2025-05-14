@@ -5,6 +5,7 @@ import {
   promptService,
   responseService,
   seatService,
+  // serviceRequestService,
   tableService,
   userService,
 } from "@/lib/api/services";
@@ -12,13 +13,8 @@ import { useWebSocket } from "@/lib/api/services/websocket-service";
 import { Manager, Role } from "@/lib/api/types/auth";
 import { Dealer } from "@/lib/api/types/dealers";
 import { Prompt, PromptStatusEnum } from "@/lib/api/types/prompts";
-import {
-  // CreateTableRequest,
-  Seat,
-  SeatStatus,
-  Table,
-  TableStatus,
-} from "@/lib/api/types/tables";
+// import { ServiceRequestType } from "@/lib/api/types/service-requests";
+import { Seat, SeatStatus, Table, TableStatus } from "@/lib/api/types/tables";
 import {
   Button,
   Grid,
@@ -30,20 +26,14 @@ import {
   Badge,
   ActionIcon,
   Card,
-  // Modal,
-  // Stack,
-  // NumberInput,
   LoadingOverlay,
   Box,
 } from "@mantine/core";
-// import { useForm } from "@mantine/form";
-// import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
   IconCheck,
   IconLogout2,
   IconMessage,
-  // IconPlus,
   IconRefresh,
   IconUser,
   IconUserHexagon,
@@ -128,6 +118,10 @@ export default function RetablePage() {
         (prompt) => prompt.id === payload.promptId
       );
 
+      const tableSeatActive = tableSeats.filter(
+        (seat) => seat.number !== 0 && seat.user && seat.status === "ACTIVE"
+      );
+
       // Check response information
       responseService.getById(payload.responseId).then((response) => {
         console.log("Response data:", response);
@@ -178,14 +172,15 @@ export default function RetablePage() {
               userName: payload.userName,
             },
           }));
+          setWaitDealer(null);
 
           // Check if the response no dealer
           if (payload.content.includes("NO")) {
-            const seatIndex = tableSeats.findIndex(
+            const seatIndex = tableSeatActive.findIndex(
               (seat) => seat.id === payload.seatId
             );
-            if (seatIndex !== -1 && seatIndex < tableSeats.length - 1) {
-              const nextSeatId = tableSeats[seatIndex + 1].id;
+            if (seatIndex !== -1 && seatIndex < tableSeatActive.length - 1) {
+              const nextSeatId = tableSeatActive[seatIndex + 1].id;
               // Start dealer rotation with the next seat
               startDealerRotation(payload.tableId, nextSeatId);
             } else {
@@ -449,7 +444,7 @@ export default function RetablePage() {
       setWaitDealer(() => ({ check: true, id: "" }));
 
       const tableSeatActive = tableSeats.filter(
-        (seat) => seat.number !== 0 && seat.user
+        (seat) => seat.number !== 0 && seat.user && seat.status === "ACTIVE"
       );
 
       // Find or create the player-dealer prompt if it doesn't exist
@@ -467,6 +462,7 @@ export default function RetablePage() {
           tableId: null,
           title: "Would you like to be Player-Dealer?",
           content: "Would you like to be the player-dealer for the next round?",
+          question: "Would you like to be the player-dealer?",
           status: PromptStatusEnum.PROCESSED,
         });
 
@@ -496,7 +492,7 @@ export default function RetablePage() {
           }
         }
       } else if (!initSeatId) {
-        seatId = tableSeatActive[1].id; // Default to the first seat if no next dealer found
+        seatId = tableSeatActive[0].id; // Default to the first seat if no next dealer found
       }
 
       if (seatId) {
@@ -611,6 +607,21 @@ export default function RetablePage() {
         selectedTable.id,
         tableMessage
       );
+
+      // console.log("Message sent:", tableSeats);
+
+      // if (
+      //   tableSeats.filter(
+      //     (seat) => seat.user && seat.status === SeatStatus.ACTIVE
+      //   ).length
+      // ) {
+      //   serviceRequestService.create({
+      //     description: tableMessage,
+      //     type: ServiceRequestType.TABLE_ADMIN,
+      //     seatId: tableSeats[0].id,
+      //     sessionId: tableSeats[0].tableId,
+      //   });
+      // }
 
       notifications.show({
         title: "Success",
@@ -945,7 +956,7 @@ export default function RetablePage() {
                           {response ? response.content : ""}
                         </MantineTable.Td>
                         <MantineTable.Td>
-                          {response
+                          {response && response.timestamp
                             ? format(
                                 new Date(response.timestamp),
                                 "MM/dd hh:mm a"
@@ -1062,62 +1073,6 @@ export default function RetablePage() {
           </Card>
         </Grid.Col>
       </Grid>
-
-      {/* Table form modal */}
-      {/* <Modal
-        opened={opened}
-        onClose={close}
-        title="Add New Table"
-        centered
-        size="lg"
-      >
-        <form onSubmit={form.onSubmit(handleSubmit)}>
-          <Stack>
-            <Grid>
-              <Grid.Col span={6}>
-                <TextInput
-                  label="Table Name"
-                  placeholder="Enter table name"
-                  required
-                  {...form.getInputProps("name")}
-                />
-              </Grid.Col>
-              <Grid.Col span={6}>
-                <NumberInput
-                  label="Capacity"
-                  placeholder="Enter seating capacity"
-                  required
-                  readOnly={
-                    !!selectedTable && selectedTable.status !== "INACTIVE"
-                  }
-                  min={1}
-                  {...form.getInputProps("capacity")}
-                />
-              </Grid.Col>
-              <Grid.Col span={12}>
-                <Select
-                  label="Assign Manager"
-                  placeholder="Select a manager"
-                  data={[
-                    { value: "", label: "Unassigned" },
-                    ...managers.map((manager) => ({
-                      value: manager.id,
-                      label: `${manager.name} (${manager.email})`,
-                    })),
-                  ]}
-                  {...form.getInputProps("userId")}
-                  description="When a manager is assigned, table becomes active"
-                  clearable
-                />
-              </Grid.Col>
-            </Grid>
-
-            <Button type="submit" mt="md">
-              {selectedTable ? "Update Table" : "Create Table"}
-            </Button>
-          </Stack>
-        </form>
-      </Modal> */}
     </Box>
   );
 }

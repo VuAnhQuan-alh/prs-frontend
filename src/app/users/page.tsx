@@ -43,13 +43,6 @@ import { Role } from "@/lib/api/types/auth";
 import { userService } from "@/lib/api/services/user-service";
 import { useAccessControl } from "@/contexts/AccessControlContext";
 
-// Role color mapping for badges
-const roleColors: Record<string, string> = {
-  [Role.ADMIN]: "red",
-  [Role.TABLE]: "blue",
-  [Role.USER]: "gray",
-};
-
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,8 +75,18 @@ export default function UsersPage() {
       email: (value) => (/^\S+@\S+$/.test(value) ? null : "Invalid email"),
       name: (value) =>
         value.length < 2 ? "Name must be at least 2 characters" : null,
-      password: (value) =>
-        value.length < 6 ? "Password must be at least 6 characters" : null,
+      password: (value) => {
+        if (value.length < 8) return "Password must be at least 8 characters";
+        // if (!/[A-Z]/.test(value))
+        //   return "Password must contain at least one uppercase letter";
+        // if (!/[a-z]/.test(value))
+        //   return "Password must contain at least one lowercase letter";
+        // if (!/[0-9]/.test(value))
+        //   return "Password must contain at least one number";
+        if (!/[^A-Za-z0-9]/.test(value))
+          return "Password must contain at least one special character";
+        return null;
+      },
     },
   });
 
@@ -287,6 +290,25 @@ export default function UsersPage() {
     setDeleteModalOpen(true);
   };
 
+  // Function to render service request status badge
+  const renderRoleBadge = (role: Role) => {
+    const colorMap: Record<Role, string> = {
+      [Role.ADMIN]: "red",
+      [Role.TABLE]: "yellow",
+      [Role.USER]: "green",
+    };
+
+    return (
+      <Badge color={colorMap[role]} variant="filled">
+        {role === Role.ADMIN
+          ? "Admin"
+          : role === Role.TABLE
+          ? "Table Admin"
+          : "PRS"}
+      </Badge>
+    );
+  };
+
   return (
     <>
       <Group justify="space-between" align="center" mb="lg">
@@ -316,7 +338,7 @@ export default function UsersPage() {
               value={Role.ADMIN}
               leftSection={<IconUserCheck size="0.8rem" />}
             >
-              Supper Admins
+              Admins
             </Tabs.Tab>
             <Tabs.Tab
               value={Role.TABLE}
@@ -328,7 +350,7 @@ export default function UsersPage() {
               value={Role.USER}
               leftSection={<IconUserCheck size="0.8rem" />}
             >
-              User Admins
+              PRS
             </Tabs.Tab>
           </Tabs.List>
         </Tabs>
@@ -350,7 +372,7 @@ export default function UsersPage() {
                 <Table.Th>ID</Table.Th>
                 <Table.Th>Name</Table.Th>
                 <Table.Th>Email</Table.Th>
-                <Table.Th>Role</Table.Th>
+                <Table.Th ta="center">Role</Table.Th>
                 <Table.Th>Active</Table.Th>
                 <Table.Th>Created</Table.Th>
                 <Table.Th ta="center">Actions</Table.Th>
@@ -373,8 +395,8 @@ export default function UsersPage() {
                     </Table.Td>
                     <Table.Td>{user.name}</Table.Td>
                     <Table.Td>{user.email}</Table.Td>
-                    <Table.Td>
-                      <Badge color={roleColors[user.role]}>{user.role}</Badge>
+                    <Table.Td ta="center">
+                      {renderRoleBadge(user.role)}
                     </Table.Td>
                     <Table.Td>
                       <Switch
@@ -542,10 +564,11 @@ export default function UsersPage() {
               label="Role"
               placeholder="Select role"
               required
-              data={Object.values(Role).map((role) => ({
-                value: role,
-                label: role,
-              }))}
+              data={[
+                { value: Role.ADMIN, label: "Admin" },
+                { value: Role.TABLE, label: "Table Admin" },
+                { value: Role.USER, label: "PRS" },
+              ]}
               {...createForm.getInputProps("role")}
             />
             <Switch
@@ -618,12 +641,13 @@ export default function UsersPage() {
             <Select
               label="Role"
               placeholder="Select role"
-              data={Object.values(Role).map((role) => ({
-                value: role,
-                label: role,
-              }))}
               required
-              {...editForm.getInputProps("role")}
+              data={[
+                { value: Role.ADMIN, label: "Admin" },
+                { value: Role.TABLE, label: "Table Admin" },
+                { value: Role.USER, label: "PRS" },
+              ]}
+              {...createForm.getInputProps("role")}
             />
             <Switch
               label="Is Active"

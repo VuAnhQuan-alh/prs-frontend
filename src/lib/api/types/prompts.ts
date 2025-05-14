@@ -2,6 +2,7 @@ export interface Prompt {
   title: string;
   id: string;
   content: string;
+  question: string;
   status: PromptStatusEnum;
   createdAt: string;
   updatedAt: string;
@@ -34,6 +35,7 @@ export interface PromptResponseOption {
 export interface CreatePromptRequest {
   title: string;
   content: string;
+  question: string;
   tableId: string | null; // Added tableId field
   status: PromptStatusEnum;
   isAllTables?: boolean;
@@ -48,6 +50,7 @@ export interface CreatePromptResponseOptionRequest {
 export interface UpdatePromptRequest {
   title?: string;
   content?: string;
+  question?: string;
   tableId?: string | null; // Added tableId field
   status?: PromptStatusEnum;
   isAllTables?: boolean;

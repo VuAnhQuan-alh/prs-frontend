@@ -118,7 +118,7 @@ const getNavigationItems = (path: string, role?: Role) => {
     },
     {
       icon: <IconNotice active={path == "/service-requests"} />,
-      label: "Announcements",
+      label: "Service Requests",
       href: "/service-requests",
       roles: [Role.ADMIN, Role.USER],
     },

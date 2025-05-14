@@ -102,7 +102,12 @@ export default function UserPlayerPage({
           prompt: Prompt | null;
         };
 
-        if (payload.seatId && payload.seatId !== sessions.seatId) return;
+        if (payload.seatId && payload.seatId !== sessions.seatId) {
+          setSelectedResponse(null);
+          setHasResponded(true);
+          return;
+        }
+        if (payload.tableId !== sessions.seat.table.id) return;
 
         if (sessions.seat.table.id === payload.tableId) {
           setSelectedResponse(null);
@@ -187,7 +192,7 @@ export default function UserPlayerPage({
           action: string;
           seat?: string;
         };
-        console.log("Table action received:", payload);
+        console.log("Table action received:", payload, sessions);
 
         if (sessions.seat.table.id === payload.tableId) {
           if (payload.action === "PAUSE") {
@@ -206,7 +211,10 @@ export default function UserPlayerPage({
           }
 
           if (payload.action === "TERMINATE") {
-            if (payload.seat === sessions.seatId) {
+            if (
+              !payload.seat ||
+              (payload.seat && payload.seat === sessions.seatId)
+            ) {
               notifications.show({
                 title: "Table Terminated",
                 message: "The table has been terminated.",
@@ -224,21 +232,6 @@ export default function UserPlayerPage({
 
               return;
             }
-
-            notifications.show({
-              title: "Table Terminated",
-              message: "The table has been terminated.",
-              color: "red",
-            });
-
-            setTableActions(null);
-            setCurrentPrompt(null);
-            setSeatResponses({});
-
-            // Redirect to the player interface
-            setTimeout(() => {
-              handleLogout();
-            }, 1400);
           }
 
           if (payload.action === "ACTIVATE") {
@@ -404,7 +397,7 @@ export default function UserPlayerPage({
             String.fromCharCode(64 + Number(sessions.seat.number || 0)) +
             " - table " +
             sessions.seat.table.name,
-          type: ServiceRequestType.ASSISTANCE,
+          type: ServiceRequestType.PLAYER_DEALER,
           seatId: sessions.seatId,
           sessionId: sessions.id,
         });
@@ -502,8 +495,6 @@ export default function UserPlayerPage({
       </Flex>
     );
   }
-
-  console.log({ currentPrompt, hasResponded, tableActions });
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F8FBFC" }}>

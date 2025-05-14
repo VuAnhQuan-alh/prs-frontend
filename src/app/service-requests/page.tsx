@@ -1,22 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  seatService,
-  serviceRequestService,
-  userService,
-} from "@/lib/api/services";
+import { serviceRequestService, userService } from "@/lib/api/services";
 import { tableService } from "@/lib/api/services"; // Add this import
 import {
   ServiceRequest,
   ServiceRequestStatus,
-  // ServiceRequestPriority,
-  ServiceRequestType,
-  CreateServiceRequestRequest,
   UpdateServiceRequestRequest,
   ServiceRequestFilters,
 } from "@/lib/api/types/service-requests";
-import { Seat, Table as TableType } from "@/lib/api/types/tables"; // Add this import
+import { Table as TableType } from "@/lib/api/types/tables"; // Add this import
 import {
   Title,
   Button,
@@ -27,11 +20,8 @@ import {
   TextInput,
   Select,
   Modal,
-  Stack,
-  Textarea,
   Tabs,
   Box,
-  Textarea as MantineTextarea,
   Text,
   Card,
   LoadingOverlay,
@@ -39,11 +29,10 @@ import {
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
-  IconEdit,
   IconTrash,
-  IconPlus,
   IconSearch,
   IconCheck,
+  IconUserCircle,
 } from "@tabler/icons-react";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
@@ -53,17 +42,11 @@ import { User } from "@/lib/api/types/users";
 
 export default function ServiceRequestsPage() {
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
-  const [tables, setTables] = useState<TableType[]>([]);
+  const [, setTables] = useState<TableType[]>([]);
   const [users, setUsers] = useState<User[]>([]); // Adjust type as needed
-  const [selectedTable, setSelectedTable] = useState<string | null>(null);
-  const [tableSeats, setTableSeats] = useState<Seat[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(
-    null
-  );
-  const [createOpened, { open: openCreate, close: closeCreate }] =
-    useDisclosure(false);
-  const [updateOpened, { open: openUpdate, close: closeUpdate }] =
+
+  const [assignUserOpened, { open: openAssignUser, close: closeAssignUser }] =
     useDisclosure(false);
   const [deleteOpened, { open: openDelete, close: closeDelete }] =
     useDisclosure(false);
@@ -79,26 +62,15 @@ export default function ServiceRequestsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [totalRequest, setTotalRequest] = useState(0);
 
-  const createForm = useForm<CreateServiceRequestRequest>({
+  const assignForm = useForm<UpdateServiceRequestRequest>({
     initialValues: {
-      seatId: "",
-      sessionId: "",
-      type: ServiceRequestType.ASSISTANCE,
-      description: "",
-    },
-    validate: {
-      description: (value) => (!value ? "Description is required" : null),
-      seatId: (value) => (!value ? "Seat ID is required" : null),
-      sessionId: (value) => (!value ? "Session ID is required" : null),
-    },
-  });
-
-  const updateForm = useForm<UpdateServiceRequestRequest>({
-    initialValues: {
+      id: "",
       status: ServiceRequestStatus.OPEN,
-      // priority: ServiceRequestPriority.MEDIUM,
       assignId: "",
       notes: "",
+    },
+    validate: {
+      assignId: (value) => (!value ? "PRS is required" : null),
     },
   });
 
@@ -148,35 +120,6 @@ export default function ServiceRequestsPage() {
     }
   };
 
-  // Function to fetch seats for a selected table
-  const fetchTableSeats = async (tableId: string) => {
-    try {
-      const data = await seatService.getByTable(tableId);
-      if (data) {
-        setTableSeats(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch table seats:", error);
-      notifications.show({
-        title: "Error",
-        message: "Failed to load table seats",
-        color: "red",
-      });
-    }
-  };
-
-  // Handle table selection change
-  const handleTableChange = (value: string | null) => {
-    setSelectedTable(value);
-    createForm.setFieldValue("seatId", "");
-
-    if (value) {
-      fetchTableSeats(value);
-    } else {
-      setTableSeats([]);
-    }
-  };
-
   // Function to fetch service requests from API
   const fetchServiceRequests = async () => {
     try {
@@ -213,7 +156,7 @@ export default function ServiceRequestsPage() {
     const colorMap: Record<ServiceRequestStatus, string> = {
       [ServiceRequestStatus.OPEN]: "red",
       [ServiceRequestStatus.IN_PROGRESS]: "yellow",
-      [ServiceRequestStatus.RESOLVED]: "green",
+      [ServiceRequestStatus.COMPLETED]: "green",
       [ServiceRequestStatus.CANCELLED]: "gray",
     };
 
@@ -222,70 +165,6 @@ export default function ServiceRequestsPage() {
         {status.replace("_", " ")}
       </Badge>
     );
-  };
-
-  // Handle create form submit
-  const handleCreateSubmit = async (values: CreateServiceRequestRequest) => {
-    try {
-      // Validate form before submission
-      const validationErrors = createForm.validate();
-      if (validationErrors.hasErrors) {
-        return; // Stop submission if there are errors
-      }
-
-      await serviceRequestService.create(values);
-      notifications.show({
-        title: "Success",
-        message: "Service request has been created",
-        color: "green",
-      });
-
-      closeCreate();
-      createForm.reset();
-      fetchServiceRequests();
-    } catch (error) {
-      console.error("Failed to create service request:", error);
-      notifications.show({
-        title: "Error",
-        message: "Failed to create service request",
-        color: "red",
-      });
-    }
-  };
-
-  // Handle update form submit
-  const handleUpdateSubmit = async (values: UpdateServiceRequestRequest) => {
-    if (!selectedRequest) return;
-
-    // Validate form before submission
-    const validationErrors = updateForm.validate();
-    if (validationErrors.hasErrors) {
-      return; // Stop submission if there are errors
-    }
-
-    try {
-      await serviceRequestService.update(selectedRequest.id, {
-        status: values.status ? values.status : null,
-        assignId: values.assignId ? values.assignId : null,
-        notes: values.notes ? values.notes : null,
-      });
-      notifications.show({
-        title: "Success",
-        message: "Service request has been updated",
-        color: "green",
-      });
-
-      closeUpdate();
-      updateForm.reset();
-      fetchServiceRequests();
-    } catch (error) {
-      console.error("Failed to update service request:", error);
-      notifications.show({
-        title: "Error",
-        message: "Failed to update service request",
-        color: "red",
-      });
-    }
   };
 
   // Handle delete service request
@@ -314,11 +193,11 @@ export default function ServiceRequestsPage() {
   const handleResolve = async (id: string) => {
     try {
       await serviceRequestService.update(id, {
-        status: ServiceRequestStatus.RESOLVED,
+        status: ServiceRequestStatus.COMPLETED,
       });
       notifications.show({
         title: "Success",
-        message: "Service request has been resolved",
+        message: "Service request has been completed",
         color: "green",
       });
       fetchServiceRequests();
@@ -330,18 +209,6 @@ export default function ServiceRequestsPage() {
         color: "red",
       });
     }
-  };
-
-  // Handle update button click
-  const handleUpdateClick = (request: ServiceRequest) => {
-    setSelectedRequest(request);
-    updateForm.setValues({
-      status: request.status,
-      // priority: request.priority,
-      assignId: request.assignId || "",
-      notes: request.notes || "",
-    });
-    openUpdate();
   };
 
   // Filter service requests based on search term
@@ -357,14 +224,6 @@ export default function ServiceRequestsPage() {
     <>
       <Group justify="space-between" mb="lg">
         <Title order={2}>Service Requests</Title>
-
-        <Button
-          variant="light"
-          leftSection={<IconPlus size="1rem" />}
-          onClick={openCreate}
-        >
-          New Request
-        </Button>
       </Group>
 
       <Group justify="apart" mb="md">
@@ -381,7 +240,9 @@ export default function ServiceRequestsPage() {
             <Tabs.Tab value={ServiceRequestStatus.IN_PROGRESS}>
               In Progress
             </Tabs.Tab>
-            <Tabs.Tab value={ServiceRequestStatus.RESOLVED}>Resolved</Tabs.Tab>
+            <Tabs.Tab value={ServiceRequestStatus.COMPLETED}>
+              Completed
+            </Tabs.Tab>
           </Tabs.List>
         </Tabs>
         <TextInput
@@ -398,8 +259,7 @@ export default function ServiceRequestsPage() {
           <Table highlightOnHover striped>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Type</Table.Th>
-                {/* <Table.Th>Priority</Table.Th> */}
+                <Table.Th>Caller</Table.Th>
                 <Table.Th>Description</Table.Th>
                 <Table.Th>Status</Table.Th>
                 <Table.Th>Created</Table.Th>
@@ -424,28 +284,34 @@ export default function ServiceRequestsPage() {
                 filteredRequests.map((request) => (
                   <Table.Tr key={request.id}>
                     <Table.Td>{request.type.replace("_", " ")}</Table.Td>
-                    {/* <Table.Td>{renderPriorityBadge(request.priority)}</Table.Td> */}
                     <Table.Td>
                       {request.description.substring(0, 50)}...
                     </Table.Td>
                     <Table.Td>{renderStatusBadge(request.status)}</Table.Td>
                     <Table.Td>
-                      {format(new Date(request.createdAt), "MMM dd, yyyy")}
+                      {format(
+                        new Date(request.createdAt),
+                        "MMM dd, yyyy HH:mm"
+                      )}
                     </Table.Td>
                     <Table.Td>
                       {request?.assigned?.name || "Unassigned"}
                     </Table.Td>
                     <Table.Td>
                       <Group gap="xs" justify="center">
-                        <ActionIcon
-                          variant="light"
-                          color="blue"
-                          onClick={() => handleUpdateClick(request)}
-                          title="Edit"
-                        >
-                          <IconEdit size="1rem" />
-                        </ActionIcon>
-                        {request.status !== ServiceRequestStatus.RESOLVED && (
+                        {request.status === ServiceRequestStatus.OPEN && (
+                          <ActionIcon
+                            onClick={() => {
+                              assignForm.setFieldValue("id", request.id);
+                              openAssignUser();
+                            }}
+                            variant="light"
+                            color="blue"
+                          >
+                            <IconUserCircle size="1rem" />
+                          </ActionIcon>
+                        )}
+                        {request.status !== ServiceRequestStatus.COMPLETED && (
                           <ActionIcon
                             variant="light"
                             color="green"
@@ -453,7 +319,7 @@ export default function ServiceRequestsPage() {
                               setRequestToResolve(request.id);
                               openResolve();
                             }}
-                            title="Mark as Resolved"
+                            title="Mark as Completed"
                           >
                             <IconCheck size="1rem" />
                           </ActionIcon>
@@ -511,140 +377,73 @@ export default function ServiceRequestsPage() {
         </Box>
       </Card>
 
-      {/* Create service request modal */}
+      {/* Modal assign user */}
       <Modal
-        opened={createOpened}
-        onClose={closeCreate}
-        title="Create Service Request"
+        opened={assignUserOpened}
+        onClose={() => {
+          assignForm.reset();
+          closeAssignUser();
+        }}
+        title="Assign PRS"
         centered
       >
-        <form onSubmit={createForm.onSubmit(handleCreateSubmit)}>
-          <Stack>
-            <Select
-              label="Table"
-              placeholder="Select a table"
-              data={tables.map((table) => ({
-                value: table.id,
-                label: `${table.name} (Capacity: ${table.capacity})`,
-              }))}
-              value={selectedTable}
-              onChange={handleTableChange}
-              required
-            />
+        <form
+          onSubmit={assignForm.onSubmit((value) => {
+            const { id, ...rest } = value;
+            if (!id) {
+              notifications.show({
+                title: "Error",
+                message: "Please select a PRS to assign",
+                color: "red",
+              });
+              return;
+            }
 
-            <Select
-              label="Seat"
-              placeholder={
-                selectedTable ? "Select a seat" : "Select a table first"
-              }
-              data={tableSeats.map((seat) => ({
-                value: seat.id,
-                label: `Seat ${seat.number} (${seat.status})`,
-              }))}
-              disabled={!selectedTable || tableSeats.length === 0}
-              {...createForm.getInputProps("seatId")}
-              required
-            />
+            serviceRequestService
+              .update(id, {
+                ...rest,
+                status: ServiceRequestStatus.IN_PROGRESS,
+              })
+              .then(() => {
+                notifications.show({
+                  title: "Success",
+                  message: "Service request has been assigned",
+                  color: "green",
+                });
+                fetchServiceRequests();
+                closeAssignUser();
+              })
+              .catch((error) => {
+                console.error("Failed to assign service request:", error);
+                notifications.show({
+                  title: "Error",
+                  message: "Failed to assign service request",
+                  color: "red",
+                });
+              });
+          })}
+        >
+          <Select
+            label="Select PRS"
+            placeholder="Select a PRS"
+            data={users.map((user) => ({
+              value: user.id,
+              label: user.name,
+            }))}
+            required
+            {...assignForm.getInputProps("assignId")}
+            mb="md"
+          />
 
-            <TextInput
-              label="Session ID"
-              placeholder="Enter session ID"
-              {...createForm.getInputProps("sessionId")}
-              required
-            />
-
-            <Select
-              label="Type"
-              placeholder="Select request type"
-              data={Object.values(ServiceRequestType).map((type) => ({
-                value: type,
-                label: type.replace("_", " "),
-              }))}
-              {...createForm.getInputProps("type")}
-            />
-
-            {/* <Select
-              label="Priority"
-              placeholder="Select priority"
-              data={Object.values(ServiceRequestPriority).map((priority) => ({
-                value: priority,
-                label: priority,
-              }))}
-              {...createForm.getInputProps("priority")}
-            /> */}
-
-            <Textarea
-              label="Description"
-              placeholder="Enter request description"
-              minRows={3}
-              required
-              {...createForm.getInputProps("description")}
-            />
-
-            <Button type="submit" mt="md">
-              Create Request
+          <Group justify="flex-end">
+            <Button variant="outline" onClick={closeAssignUser}>
+              Cancel
             </Button>
-          </Stack>
+            <Button variant="light" type="submit">
+              Assign PRS
+            </Button>
+          </Group>
         </form>
-      </Modal>
-
-      {/* Update service request modal */}
-      <Modal
-        opened={updateOpened}
-        onClose={closeUpdate}
-        title="Update Service Request"
-        centered
-      >
-        {selectedRequest && (
-          <form onSubmit={updateForm.onSubmit(handleUpdateSubmit)}>
-            <Stack>
-              <Box mb="sm">
-                <Text size="sm" fw={500}>
-                  Request Type
-                </Text>
-                <Text>{selectedRequest.type.replace("_", " ")}</Text>
-              </Box>
-
-              <Box mb="sm">
-                <Text size="sm" fw={500}>
-                  Description
-                </Text>
-                <Text>{selectedRequest.description}</Text>
-              </Box>
-
-              <Select
-                label="Status"
-                placeholder="Select status"
-                data={Object.values(ServiceRequestStatus).map((status) => ({
-                  value: status,
-                  label: status.replace("_", " "),
-                }))}
-                {...updateForm.getInputProps("status")}
-              />
-
-              <Select
-                label="Assigned User"
-                placeholder="Select assigned user"
-                data={users.map((user) => ({
-                  value: user.id,
-                  label: `${user.name} (${user.email})`,
-                }))}
-                {...updateForm.getInputProps("assignId")}
-              />
-
-              <MantineTextarea
-                label="Notes"
-                placeholder="Add notes about this request"
-                minRows={3}
-                {...updateForm.getInputProps("notes")}
-              />
-
-              <Button type="submit" mt="md">
-                Update Request
-              </Button>
-            </Stack>
-          </form>
-        )}
       </Modal>
 
       {/* Delete confirmation modal */}

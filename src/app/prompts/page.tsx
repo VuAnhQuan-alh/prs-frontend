@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { promptService, tableService } from "@/lib/api/services";
+import { promptService } from "@/lib/api/services";
 import {
   Prompt,
   CreatePromptRequest,
@@ -18,25 +18,15 @@ import {
   Modal,
   Stack,
   Textarea,
-  Tabs,
   Card,
   TextInput,
   Text,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import {
-  IconEdit,
-  IconTrash,
-  IconPlus,
-  IconSearch,
-  IconList,
-  IconCircleCheck,
-  IconAlertCircle,
-  IconClock,
-} from "@tabler/icons-react";
+import { IconEdit, IconTrash, IconPlus, IconSearch } from "@tabler/icons-react";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
-import { Table } from "@/lib/api/types/tables";
+// import { Table } from "@/lib/api/types/tables";
 
 export default function PromptsPage() {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
@@ -49,16 +39,16 @@ export default function PromptsPage() {
     id: string;
     title: string;
   } | null>(null);
-  const [activeTab, setActiveTab] = useState<string | null>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const [loadingTables, setLoadingTables] = useState(true);
-  const [tables, setTables] = useState<Table[]>([]);
+  // const [loadingTables, setLoadingTables] = useState(true);
+  // const [tables, setTables] = useState<Table[]>([]);
 
   const form = useForm<CreatePromptRequest>({
     initialValues: {
       title: "",
       content: "",
+      question: "",
       tableId: "",
       status: PromptStatusEnum.PROCESSED,
     },
@@ -70,13 +60,12 @@ export default function PromptsPage() {
   // Fetch prompts on component mount
   useEffect(() => {
     fetchPrompts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, []);
 
   // Fetch tables on create and edit prompt
-  useEffect(() => {
-    if (opened) fetchTables();
-  }, [opened]);
+  // useEffect(() => {
+  //   if (opened) fetchTables();
+  // }, [opened]);
 
   // Filter prompts based on search query
   const filteredPrompts = prompts.filter((prompt) => {
@@ -94,11 +83,7 @@ export default function PromptsPage() {
     try {
       setLoading(true);
 
-      let filters = {};
-      if (activeTab !== "all" && activeTab) {
-        filters = { status: activeTab as PromptStatusEnum };
-      }
-
+      const filters = {};
       const data = await promptService.getAll(filters);
       setPrompts(data);
     } catch (error: unknown) {
@@ -118,25 +103,25 @@ export default function PromptsPage() {
   };
 
   // Fetch tables for select input
-  const fetchTables = async () => {
-    try {
-      setLoadingTables(true);
-      const data = await tableService.getAll();
-      setTables(data.docs);
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to load tables. Please try again later.";
-      notifications.show({
-        title: "Error",
-        message: errorMessage,
-        color: "red",
-      });
-    } finally {
-      setLoadingTables(false);
-    }
-  };
+  // const fetchTables = async () => {
+  //   try {
+  //     setLoadingTables(true);
+  //     const data = await tableService.getAll();
+  //     setTables(data.docs);
+  //   } catch (error: unknown) {
+  //     const errorMessage =
+  //       error instanceof Error
+  //         ? error.message
+  //         : "Failed to load tables. Please try again later.";
+  //     notifications.show({
+  //       title: "Error",
+  //       message: errorMessage,
+  //       color: "red",
+  //     });
+  //   } finally {
+  //     setLoadingTables(false);
+  //   }
+  // };
 
   // Function to handle form submission for creating/updating prompts
   const handleSubmit = async (values: CreatePromptRequest) => {
@@ -235,7 +220,11 @@ export default function PromptsPage() {
 
     return (
       <Badge color={colorMap[status]} variant="filled">
-        {status.replace("_", " ")}
+        {status === PromptStatusEnum.PENDING
+          ? "Manual"
+          : status === PromptStatusEnum.PROCESSED
+          ? "Random"
+          : "Failed"}
       </Badge>
     );
   };
@@ -254,32 +243,6 @@ export default function PromptsPage() {
       </Group>
 
       <Group justify="apart" mb="md">
-        <Tabs value={activeTab} onChange={setActiveTab}>
-          <Tabs.List>
-            <Tabs.Tab value="all" leftSection={<IconList size="0.8rem" />}>
-              All
-            </Tabs.Tab>
-            <Tabs.Tab
-              value={PromptStatusEnum.PROCESSED}
-              leftSection={<IconCircleCheck size="0.8rem" />}
-            >
-              Processed
-            </Tabs.Tab>
-            <Tabs.Tab
-              value={PromptStatusEnum.PENDING}
-              leftSection={<IconClock size="0.8rem" />}
-            >
-              Pending
-            </Tabs.Tab>
-            <Tabs.Tab
-              value={PromptStatusEnum.FAILED}
-              leftSection={<IconAlertCircle size="0.8rem" />}
-            >
-              Failed
-            </Tabs.Tab>
-          </Tabs.List>
-        </Tabs>
-
         <TextInput
           placeholder="Search prompts..."
           leftSection={<IconSearch size="1rem" />}
@@ -294,8 +257,11 @@ export default function PromptsPage() {
             <MantineTable.Tr>
               <MantineTable.Th>Title</MantineTable.Th>
               <MantineTable.Th>Content</MantineTable.Th>
-              <MantineTable.Th>Status</MantineTable.Th>
-              <MantineTable.Th>Actions</MantineTable.Th>
+              <MantineTable.Th>Question</MantineTable.Th>
+              <MantineTable.Th miw="100px">Status</MantineTable.Th>
+              <MantineTable.Th ta="center" miw="100px">
+                Actions
+              </MantineTable.Th>
             </MantineTable.Tr>
           </MantineTable.Thead>
           <MantineTable.Tbody>
@@ -316,11 +282,12 @@ export default function PromptsPage() {
                 <MantineTable.Tr key={prompt.id}>
                   <MantineTable.Td>{prompt.title}</MantineTable.Td>
                   <MantineTable.Td>{prompt.content}</MantineTable.Td>
+                  <MantineTable.Td>{prompt.question}</MantineTable.Td>
                   <MantineTable.Td>
                     {renderStatusBadge(prompt.status)}
                   </MantineTable.Td>
                   <MantineTable.Td>
-                    <Group>
+                    <Group justify="center">
                       <ActionIcon
                         color="blue"
                         variant="light"
@@ -374,29 +341,37 @@ export default function PromptsPage() {
         >
           <Stack>
             <TextInput
-              label="Title"
-              placeholder="Enter prompt title"
+              label="Name"
+              placeholder="Enter prompt name"
               required
               {...form.getInputProps("title")}
             />
             <Textarea
               label="Content"
-              placeholder="Enter prompt content/question"
+              placeholder="Enter prompt content"
               required
               minRows={3}
               {...form.getInputProps("content")}
             />
+            <Textarea
+              label="Question"
+              placeholder="Enter prompt question"
+              required
+              minRows={3}
+              {...form.getInputProps("question")}
+            />
             <Select
               label="Status"
               placeholder="Select prompt type"
-              data={Object.values(PromptStatusEnum).map((type) => ({
-                value: type,
-                label: type.replace("_", " "),
-              }))}
+              data={[
+                { value: PromptStatusEnum.PENDING, label: "Manual" },
+                { value: PromptStatusEnum.PROCESSED, label: "Random" },
+                // { value: PromptStatusEnum.FAILED, label: "Failed" },
+              ]}
               required
               {...form.getInputProps("status")}
             />
-            <Select
+            {/* <Select
               label="Table"
               placeholder="Select Table"
               data={
@@ -413,7 +388,7 @@ export default function PromptsPage() {
               }
               {...form.getInputProps("tableId")}
               clearable
-            />
+            /> */}
 
             <Button type="submit" mt="md">
               {selectedPrompt ? "Update Prompt" : "Create Prompt"}
@@ -421,42 +396,6 @@ export default function PromptsPage() {
           </Stack>
         </form>
       </Modal>
-
-      {/* Response options modal */}
-      {/* <Modal
-        opened={responseOptionsOpen}
-        onClose={closeOptions}
-        title="Response Options"
-        size="md"
-        centered
-      >
-        {responseOptions.length === 0 ? (
-          <Text>No response options defined for this prompt.</Text>
-        ) : (
-          <Accordion>
-            {responseOptions.map((option) => (
-              <Accordion.Item key={option.id} value={option.id}>
-                <Accordion.Control>{option.label}</Accordion.Control>
-                <Accordion.Panel>
-                  <Stack>
-                    <Group>
-                      <Text fw={500}>Value:</Text>
-                      <Text>{option.value}</Text>
-                    </Group>
-                    <Group>
-                      <Text fw={500}>Order:</Text>
-                      <Text>{option.order}</Text>
-                    </Group>
-                  </Stack>
-                </Accordion.Panel>
-              </Accordion.Item>
-            ))}
-          </Accordion>
-        )}
-        <Button fullWidth mt="md" onClick={closeOptions}>
-          Close
-        </Button>
-      </Modal> */}
 
       {/* Delete confirmation modal */}
       <Modal
