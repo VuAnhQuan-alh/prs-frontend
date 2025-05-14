@@ -29,7 +29,11 @@ export default function LoginPage() {
       password: "",
     },
     validate: {
-      email: (value) => (!value ? "Email is required" : null),
+      email: (value) => {
+        const trimmedValue = value.trim();
+        if (!trimmedValue) return "Email is required";
+        return null;
+      },
       password: (value) => (!value ? "Password is required" : null),
     },
   });
@@ -37,7 +41,12 @@ export default function LoginPage() {
   const handleSubmit = async (values: { email: string; password: string }) => {
     try {
       setLoading(true);
-      const auth = await authService.login(values);
+      // Trim email before sending to API
+      const trimmedValues = {
+        ...values,
+        email: values.email.trim(),
+      };
+      const auth = await authService.login(trimmedValues);
       notifications.show({
         title: "Login successful",
         message: "You have been logged in successfully.",
@@ -89,6 +98,12 @@ export default function LoginPage() {
             placeholder="Your email"
             required
             mb="sm"
+            onBlur={(e) => {
+              const trimmedValue = e.target.value.trim();
+              if (trimmedValue !== e.target.value) {
+                form.setFieldValue("email", trimmedValue);
+              }
+            }}
             {...form.getInputProps("email")}
           />
 

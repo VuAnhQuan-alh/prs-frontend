@@ -163,7 +163,7 @@ export default function Dashboard() {
             ? "red"
             : item.status === ServiceRequestStatus.IN_PROGRESS
             ? "yellow"
-            : item.status === ServiceRequestStatus.RESOLVED
+            : item.status === ServiceRequestStatus.COMPLETED
             ? "green"
             : "gray",
         value: item.percentage,
@@ -181,7 +181,7 @@ export default function Dashboard() {
     const colorMap: Record<ServiceRequestStatus, string> = {
       [ServiceRequestStatus.OPEN]: "red",
       [ServiceRequestStatus.IN_PROGRESS]: "yellow",
-      [ServiceRequestStatus.RESOLVED]: "green",
+      [ServiceRequestStatus.COMPLETED]: "green",
       [ServiceRequestStatus.CANCELLED]: "gray",
     };
 

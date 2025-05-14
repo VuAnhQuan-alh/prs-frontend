@@ -258,7 +258,7 @@ export default function PromptsPage() {
               <MantineTable.Th>Title</MantineTable.Th>
               <MantineTable.Th>Content</MantineTable.Th>
               <MantineTable.Th>Question</MantineTable.Th>
-              <MantineTable.Th miw="100px">Status</MantineTable.Th>
+              <MantineTable.Th miw="100px">Rotation</MantineTable.Th>
               <MantineTable.Th ta="center" miw="100px">
                 Actions
               </MantineTable.Th>
@@ -361,8 +361,8 @@ export default function PromptsPage() {
               {...form.getInputProps("question")}
             />
             <Select
-              label="Status"
-              placeholder="Select prompt type"
+              label="Rotation start"
+              placeholder="Select rotation start"
               data={[
                 { value: PromptStatusEnum.PENDING, label: "Manual" },
                 { value: PromptStatusEnum.PROCESSED, label: "Random" },
