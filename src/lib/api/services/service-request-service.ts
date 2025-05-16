@@ -82,6 +82,13 @@ class ServiceRequestService {
       }[];
     }>(`${this.BASE_URL}/stats/by-status`);
   }
+
+  async putAssignServiceRequest(id: string): Promise<ServiceRequest> {
+    return await apiClient.put<ServiceRequest>(
+      `${this.BASE_URL}/${id}/assign`,
+      {}
+    );
+  }
 }
 
 export const serviceRequestService = new ServiceRequestService();

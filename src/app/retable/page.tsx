@@ -1,11 +1,13 @@
 "use client";
 
+import { format } from "date-fns";
+import { useEffect, useState } from "react";
+
 import {
   dealerService,
   promptService,
   responseService,
   seatService,
-  // serviceRequestService,
   tableService,
   userService,
 } from "@/lib/api/services";
@@ -13,34 +15,32 @@ import { useWebSocket } from "@/lib/api/services/websocket-service";
 import { Manager, Role } from "@/lib/api/types/auth";
 import { Dealer } from "@/lib/api/types/dealers";
 import { Prompt, PromptStatusEnum } from "@/lib/api/types/prompts";
-// import { ServiceRequestType } from "@/lib/api/types/service-requests";
 import { Seat, SeatStatus, Table, TableStatus } from "@/lib/api/types/tables";
 import {
+  ActionIcon,
+  Badge,
+  Box,
   Button,
+  Card,
   Grid,
   Group,
+  LoadingOverlay,
   Select,
+  Table as MantineTable,
   TextInput,
   Title,
-  Table as MantineTable,
-  Badge,
-  ActionIcon,
-  Card,
-  LoadingOverlay,
-  Box,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
   IconCheck,
   IconLogout2,
   IconMessage,
+  IconMouseOff,
   IconRefresh,
   IconUser,
   IconUserHexagon,
   IconUserX,
 } from "@tabler/icons-react";
-import { format } from "date-fns";
-import { useEffect, useState } from "react";
 
 // Define an interface for player responses
 interface PlayerResponse {
@@ -209,7 +209,6 @@ export default function RetablePage() {
           }
         }
       });
-      console.log("Current Prompt:", currentPrompt);
 
       // Show notification to admin
       notifications.show({
@@ -282,14 +281,9 @@ export default function RetablePage() {
         icon: <IconUser size="1.1rem" />,
         autoClose: false,
       });
-
-      // If this is for the currently selected table, refresh dealer information
-      // if (selectedTable && selectedTable.id === payload.tableId) {
-      //   fetchCurrentDealer(payload.tableId);
-      // }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastMessage]);
+  }, [lastMessage?.type]);
 
   // Subscribe to staff WebSocket channel when component mounts
   useEffect(() => {
@@ -539,20 +533,9 @@ export default function RetablePage() {
     e.stopPropagation(); // Prevent the fetchSeatDetails from triggering
 
     // if seat already session endTime is null
-    if (seat.user) {
-      notifications.show({
-        title: "Error",
-        message: "Cannot change status of an active seat",
-        color: "orange",
-      });
-      return;
-    }
-
-    console.log("Toggle seat status:", seat);
+    if (seat.user) return;
 
     try {
-      // setLoadingDetails(true);
-
       // Toggle the status between ACTIVE and INACTIVE
       const newStatus =
         seat.status === SeatStatus.ACTIVE
@@ -574,7 +557,7 @@ export default function RetablePage() {
       // Show success notification
       notifications.show({
         title: "Change Seat Status",
-        message: `Seat ${String.fromCharCode(64 + seat.number)} is now ${
+        message: `Seat ${seat.number} is now ${
           newStatus === SeatStatus.ACTIVE ? "active" : "inactive"
         }`,
         color: newStatus === SeatStatus.ACTIVE ? "blue" : "gray",
@@ -603,25 +586,10 @@ export default function RetablePage() {
     }
 
     try {
-      const response = await tableService.sendMessage(
+      const response = await tableService.sendNoteFSR(
         selectedTable.id,
         tableMessage
       );
-
-      // console.log("Message sent:", tableSeats);
-
-      // if (
-      //   tableSeats.filter(
-      //     (seat) => seat.user && seat.status === SeatStatus.ACTIVE
-      //   ).length
-      // ) {
-      //   serviceRequestService.create({
-      //     description: tableMessage,
-      //     type: ServiceRequestType.TABLE_ADMIN,
-      //     seatId: tableSeats[0].id,
-      //     sessionId: tableSeats[0].tableId,
-      //   });
-      // }
 
       notifications.show({
         title: "Success",
@@ -673,7 +641,10 @@ export default function RetablePage() {
               <Button
                 color="blue"
                 variant="light"
-                disabled={!selectedTable}
+                disabled={
+                  !selectedTable ||
+                  selectedTable.status !== TableStatus.INACTIVE
+                }
                 onClick={() => {
                   if (selectedTable) {
                     tableService
@@ -702,14 +673,20 @@ export default function RetablePage() {
                   }
                 }}
               >
-                Active
+                Activate
               </Button>
               <Button
                 color="orange"
                 variant="light"
-                disabled={!selectedTable}
+                disabled={
+                  !selectedTable ||
+                  selectedTable.status === TableStatus.INACTIVE
+                }
                 onClick={() => {
-                  if (selectedTable) {
+                  if (
+                    selectedTable &&
+                    selectedTable.status === TableStatus.ACTIVE
+                  ) {
                     tableService
                       .sendAction(selectedTable.id, {
                         action: "PAUSE",
@@ -738,14 +715,47 @@ export default function RetablePage() {
                         setDealerResponses({});
                       });
                   }
+                  if (
+                    selectedTable &&
+                    selectedTable.status === TableStatus.MAINTENANCE
+                  ) {
+                    tableService
+                      .sendAction(selectedTable.id, {
+                        action: "ACTIVATE",
+                      })
+                      .then(() => {
+                        setSelectedTable((table) =>
+                          table
+                            ? { ...table, status: TableStatus.ACTIVE }
+                            : null
+                        );
+                        setTables((prev) =>
+                          prev.map((table) =>
+                            table.id === selectedTable.id
+                              ? { ...table, status: TableStatus.ACTIVE }
+                              : table
+                          )
+                        );
+                        notifications.show({
+                          title: "Success",
+                          message: `Session for table ${selectedTable.name} resumed`,
+                          color: "orange",
+                        });
+                      });
+                  }
                 }}
               >
-                Pause Session
+                {selectedTable?.status === TableStatus.MAINTENANCE
+                  ? "Resume Session"
+                  : "Pause Session"}
               </Button>
               <Button
                 color="red"
                 variant="light"
-                disabled={!selectedTable}
+                disabled={
+                  !selectedTable ||
+                  selectedTable.status === TableStatus.INACTIVE
+                }
                 onClick={() => {
                   if (selectedTable) {
                     tableService
@@ -792,14 +802,18 @@ export default function RetablePage() {
               {selectedTable && (
                 <Badge
                   color={
-                    selectedTable.status === "ACTIVE"
+                    selectedTable.status === TableStatus.ACTIVE
                       ? "green"
                       : selectedTable.status === TableStatus.MAINTENANCE
                       ? "yellow"
                       : "red"
                   }
                 >
-                  {selectedTable.status}
+                  {selectedTable.status === TableStatus.ACTIVE
+                    ? "Active"
+                    : selectedTable.status === TableStatus.INACTIVE
+                    ? "Inactive"
+                    : "Session Paused"}
                 </Badge>
               )}
             </Group>
@@ -812,7 +826,7 @@ export default function RetablePage() {
             <Group align="flex-end" mb="xs">
               <TextInput
                 flex={1}
-                label="Notes to PSR"
+                label="Notes to FSR"
                 placeholder="Enter notes"
                 value={tableMessage}
                 onChange={(e) => setTableMessage(e.target.value)}
@@ -823,20 +837,18 @@ export default function RetablePage() {
                 variant="light"
                 w="30%"
                 disabled={
-                  !selectedTable ||
-                  selectedTable.status !== "ACTIVE" ||
-                  tableSeats.filter((seat) => seat.user).length < 2
+                  !selectedTable || selectedTable.status !== TableStatus.ACTIVE
                 }
                 onClick={() => handleSendTableMessage()}
               >
-                Request PSR
+                Request FSR
               </Button>
             </Group>
 
             <Group align="flex-end">
               <Select
                 flex={1}
-                label="Prompt PSR"
+                label="Send prompt to table"
                 placeholder="Select prompt"
                 data={tablePrompts
                   .filter(
@@ -925,28 +937,15 @@ export default function RetablePage() {
                             )}
                         </MantineTable.Td>
                         <MantineTable.Td>
-                          Seat{" "}
-                          {seat ? String.fromCharCode(64 + seat.number) : "?"}
+                          Seat {seat ? seat.number : "?"}
                         </MantineTable.Td>
                         <MantineTable.Td>
                           <Group justify="center">
-                            <Badge
-                              color={
-                                seat.status === SeatStatus.ACTIVE && seat.user
-                                  ? "green"
-                                  : seat.status === SeatStatus.ACTIVE &&
-                                    !seat.user
-                                  ? "yellow"
-                                  : "gray"
-                              }
-                            >
-                              {seat.status === SeatStatus.ACTIVE && seat.user
-                                ? "Active"
-                                : seat.status === SeatStatus.ACTIVE &&
-                                  !seat.user
-                                ? "No setup"
-                                : "Inactive"}
-                            </Badge>
+                            {seat.status === SeatStatus.ACTIVE && (
+                              <Badge color={seat.user ? "green" : "gray"}>
+                                {seat.user ? "Active" : "Inactive"}
+                              </Badge>
+                            )}
                           </Group>
                         </MantineTable.Td>
                         <MantineTable.Td>
@@ -973,24 +972,34 @@ export default function RetablePage() {
                           <Group gap="xs" justify="center">
                             {seat.status === SeatStatus.ACTIVE ? (
                               <>
-                                <ActionIcon
-                                  variant="light"
-                                  color="red"
-                                  onClick={(e) => {
-                                    if (selectedTable) {
-                                      tableService
-                                        .sendAction(selectedTable.id, {
-                                          action: "TERMINATE",
-                                          seatId: seat.id,
-                                        })
-                                        .then(() => {
-                                          toggleSeatStatus(seat, e);
-                                        });
-                                    }
-                                  }}
-                                >
-                                  <IconLogout2 size="1rem" />
-                                </ActionIcon>
+                                {seat.user ? (
+                                  <ActionIcon
+                                    variant="light"
+                                    color="orange"
+                                    onClick={() => {
+                                      if (selectedTable) {
+                                        tableService.sendAction(
+                                          selectedTable.id,
+                                          {
+                                            action: "TERMINATE",
+                                            seatId: seat.id,
+                                          }
+                                        );
+                                      }
+                                    }}
+                                  >
+                                    <IconLogout2 size="1rem" />
+                                  </ActionIcon>
+                                ) : (
+                                  <ActionIcon
+                                    variant="light"
+                                    color="red"
+                                    onClick={(e) => toggleSeatStatus(seat, e)}
+                                  >
+                                    <IconMouseOff size="1rem" />
+                                  </ActionIcon>
+                                )}
+
                                 <ActionIcon
                                   variant="light"
                                   color="blue"
@@ -1053,8 +1062,7 @@ export default function RetablePage() {
                     return (
                       <MantineTable.Tr key={seat.id}>
                         <MantineTable.Td>
-                          Seat{" "}
-                          {seat ? String.fromCharCode(64 + seat.number) : "?"}
+                          Seat {seat ? seat.number : "?"}
                         </MantineTable.Td>
                         <MantineTable.Td>
                           {!tablePrompt

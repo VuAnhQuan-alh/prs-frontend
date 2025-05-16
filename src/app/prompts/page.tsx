@@ -256,7 +256,7 @@ export default function PromptsPage() {
           <MantineTable.Thead>
             <MantineTable.Tr>
               <MantineTable.Th>Title</MantineTable.Th>
-              <MantineTable.Th>Content</MantineTable.Th>
+              <MantineTable.Th>Description</MantineTable.Th>
               <MantineTable.Th>Question</MantineTable.Th>
               <MantineTable.Th miw="100px">Rotation</MantineTable.Th>
               <MantineTable.Th ta="center" miw="100px">
@@ -347,8 +347,8 @@ export default function PromptsPage() {
               {...form.getInputProps("title")}
             />
             <Textarea
-              label="Content"
-              placeholder="Enter prompt content"
+              label="Description"
+              placeholder="Enter prompt description"
               required
               minRows={3}
               {...form.getInputProps("content")}

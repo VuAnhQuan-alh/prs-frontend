@@ -15,12 +15,7 @@ import {
 } from "@mantine/core";
 import { DatePickerInput, TimeInput } from "@mantine/dates";
 import { IconFilter, IconDownload, IconClock } from "@tabler/icons-react";
-import {
-  responseService,
-  tableService,
-  userService,
-  // serviceRequestService,
-} from "@/lib/api/services";
+import { responseService, tableService, userService } from "@/lib/api/services";
 import { Response, ResponseType } from "@/lib/api/types/responses";
 import { notifications } from "@mantine/notifications";
 import { Role } from "@/lib/api/types/auth";
@@ -178,20 +173,20 @@ export default function ReportsPage() {
 
     // Prepare CSV content
     const headers = [
+      "Admin",
       "Table",
       "Seat",
-      "Guest",
       "Prompt",
       "Response",
       "Timestamp",
     ];
     const csvContent = responses.map((response) => {
       return [
+        response.tableAdmin?.name || "-",
         response.table?.name || "-",
         response.seat?.number
           ? "Seat " + String.fromCharCode(64 + response.seat.number)
           : "-",
-        response.session?.name || "Unknown Guest",
         response.prompt?.title || "Unknown Prompt",
         response.type || "-",
         new Date(response.createdAt).toLocaleString(),
@@ -358,9 +353,9 @@ export default function ReportsPage() {
           <Table striped highlightOnHover>
             <Table.Thead>
               <Table.Tr>
+                <Table.Th>Table Admin</Table.Th>
                 <Table.Th>Table</Table.Th>
                 <Table.Th>Seat</Table.Th>
-                {/* <Table.Th>Guest</Table.Th> */}
                 <Table.Th>Prompt</Table.Th>
                 <Table.Th ta="center">Response</Table.Th>
                 <Table.Th ta="end">Timestamp</Table.Th>
@@ -370,16 +365,13 @@ export default function ReportsPage() {
               {responses.length > 0 ? (
                 responses.map((response) => (
                   <Table.Tr key={response.id}>
+                    <Table.Td>{response.tableAdmin?.name || "-"}</Table.Td>
                     <Table.Td>{response.table?.name || "-"}</Table.Td>
                     <Table.Td>
                       {response.seat?.number
-                        ? "Seat " +
-                          String.fromCharCode(64 + response.seat.number)
+                        ? "Seat " + response.seat.number
                         : "-"}
                     </Table.Td>
-                    {/* <Table.Td>
-                      {response.session?.name || "Unknown Guest"}
-                    </Table.Td> */}
                     <Table.Td>{response.prompt?.title || "-"}</Table.Td>
                     <Table.Td ta="center">
                       {response.type === ResponseType.YES ? (

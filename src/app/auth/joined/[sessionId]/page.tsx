@@ -626,9 +626,7 @@ export default function UserPlayerPage({
                         }}
                       >
                         <Group justify="space-between">
-                          <Text fw={500}>
-                            Seat {String.fromCharCode(64 + seat.number)}
-                          </Text>
+                          <Text fw={500}>Seat {seat.number}</Text>
                           <Text c="dimmed">
                             {seatResponses[seat.id]
                               ? seatResponses[seat.id] === ResponseType.YES

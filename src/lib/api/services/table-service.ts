@@ -132,6 +132,22 @@ class TableService {
       throw error;
     }
   }
+
+  /**
+   * Update a table with seats
+   * @param tableId - Table ID
+   * @body note - Table note
+   * @returns Send note for the table
+   */
+  async sendNoteFSR(
+    tableId: string,
+    note: string
+  ): Promise<{ message: string }> {
+    return await apiClient.post<{ message: string }>(
+      `${this.BASE_URL}/${tableId}/notes-fsr`,
+      { note }
+    );
+  }
 }
 
 export const tableService = new TableService();

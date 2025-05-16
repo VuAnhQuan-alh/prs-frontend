@@ -304,7 +304,7 @@ export default function UsersPage() {
           ? "Admin"
           : role === Role.TABLE
           ? "Table Admin"
-          : "PRS"}
+          : "FSR"}
       </Badge>
     );
   };
@@ -350,7 +350,7 @@ export default function UsersPage() {
               value={Role.USER}
               leftSection={<IconUserCheck size="0.8rem" />}
             >
-              PRS
+              FSR
             </Tabs.Tab>
           </Tabs.List>
         </Tabs>
@@ -567,7 +567,7 @@ export default function UsersPage() {
               data={[
                 { value: Role.ADMIN, label: "Admin" },
                 { value: Role.TABLE, label: "Table Admin" },
-                { value: Role.USER, label: "PRS" },
+                { value: Role.USER, label: "FSR" },
               ]}
               {...createForm.getInputProps("role")}
             />
@@ -642,10 +642,11 @@ export default function UsersPage() {
               label="Role"
               placeholder="Select role"
               required
+              readOnly
               data={[
                 { value: Role.ADMIN, label: "Admin" },
                 { value: Role.TABLE, label: "Table Admin" },
-                { value: Role.USER, label: "PRS" },
+                { value: Role.USER, label: "FSR" },
               ]}
               {...createForm.getInputProps("role")}
             />

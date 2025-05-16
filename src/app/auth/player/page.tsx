@@ -1,22 +1,23 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
+import { seatService, sessionService, tableService } from "@/lib/api/services";
+import { Seat, SeatStatus, Table, TableStatus } from "@/lib/api/types/tables";
 import {
-  TextInput,
-  Button,
   Box,
-  Title,
+  Button,
   Paper,
-  Text,
   Select,
+  Text,
+  TextInput,
+  Title,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { seatService, sessionService, tableService } from "@/lib/api/services";
-import { Seat, SeatStatus, Table, TableStatus } from "@/lib/api/types/tables";
-import Image from "next/image";
 
 export default function SeatSetupPage() {
   const [loading, setLoading] = useState(false);
@@ -198,7 +199,7 @@ export default function SeatSetupPage() {
                       .filter((seat) => seat.number !== 0)
                       .map((seat) => ({
                         value: seat.id,
-                        label: `Seat ${String.fromCharCode(64 + seat.number)}`,
+                        label: `Seat ${seat.number}`,
                         disabled: Boolean(
                           seat.status === SeatStatus.INACTIVE || seat.user
                         ),

@@ -1,53 +1,44 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { serviceRequestService, userService } from "@/lib/api/services";
-import { tableService } from "@/lib/api/services"; // Add this import
+import { format } from "date-fns";
+import { useEffect, useState } from "react";
+
+import { serviceRequestService } from "@/lib/api/services";
 import {
   ServiceRequest,
-  ServiceRequestStatus,
-  UpdateServiceRequestRequest,
   ServiceRequestFilters,
+  ServiceRequestStatus,
 } from "@/lib/api/types/service-requests";
-import { Table as TableType } from "@/lib/api/types/tables"; // Add this import
 import {
-  Title,
-  Button,
-  Badge,
-  Table,
-  Group,
   ActionIcon,
-  TextInput,
-  Select,
-  Modal,
-  Tabs,
+  Badge,
   Box,
-  Text,
+  Button,
   Card,
+  Group,
   LoadingOverlay,
+  Modal,
   Pagination,
+  Select,
+  Table,
+  Tabs,
+  Text,
+  TextInput,
+  Title,
 } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
-  IconTrash,
-  IconSearch,
   IconCheck,
+  IconSearch,
+  IconTrash,
   IconUserCircle,
 } from "@tabler/icons-react";
-import { useForm } from "@mantine/form";
-import { useDisclosure } from "@mantine/hooks";
-import { format } from "date-fns";
-import { Role } from "@/lib/api/types/auth";
-import { User } from "@/lib/api/types/users";
 
 export default function ServiceRequestsPage() {
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
-  const [, setTables] = useState<TableType[]>([]);
-  const [users, setUsers] = useState<User[]>([]); // Adjust type as needed
   const [loading, setLoading] = useState(true);
 
-  const [assignUserOpened, { open: openAssignUser, close: closeAssignUser }] =
-    useDisclosure(false);
   const [deleteOpened, { open: openDelete, close: closeDelete }] =
     useDisclosure(false);
   const [resolveOpened, { open: openResolve, close: closeResolve }] =
@@ -62,63 +53,11 @@ export default function ServiceRequestsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [totalRequest, setTotalRequest] = useState(0);
 
-  const assignForm = useForm<UpdateServiceRequestRequest>({
-    initialValues: {
-      id: "",
-      status: ServiceRequestStatus.OPEN,
-      assignId: "",
-      notes: "",
-    },
-    validate: {
-      assignId: (value) => (!value ? "PRS is required" : null),
-    },
-  });
-
-  useEffect(() => {
-    fetchTables();
-    fetchUsers();
-  }, []);
-
   // Fetch service requests on component mount
   useEffect(() => {
     fetchServiceRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, currentPage, pageSize]);
-
-  // Function to fetch tables from API
-  const fetchTables = async () => {
-    try {
-      const data = await tableService.getAll();
-      setTables(data.docs);
-    } catch (error) {
-      console.error("Failed to fetch tables:", error);
-      notifications.show({
-        title: "Error",
-        message: "Failed to load tables",
-        color: "red",
-      });
-    }
-  };
-
-  // Fetch users for the update form, role User, is active
-  const fetchUsers = async () => {
-    try {
-      const data = await userService.getAll({
-        role: Role.USER,
-        isActive: true,
-      });
-      setUsers(data.docs);
-    } catch (error) {
-      console.error("Failed to fetch users:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown Failed to load users";
-      notifications.show({
-        title: "Error",
-        message: errorMessage,
-        color: "red",
-      });
-    }
-  };
 
   // Function to fetch service requests from API
   const fetchServiceRequests = async () => {
@@ -261,9 +200,9 @@ export default function ServiceRequestsPage() {
               <Table.Tr>
                 <Table.Th>Caller</Table.Th>
                 <Table.Th>Description</Table.Th>
-                <Table.Th>Status</Table.Th>
-                <Table.Th>Created</Table.Th>
+                <Table.Th ta="center">Status</Table.Th>
                 <Table.Th>Assigned To</Table.Th>
+                <Table.Th ta="end">Created</Table.Th>
                 <Table.Th ta="center">Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -287,23 +226,41 @@ export default function ServiceRequestsPage() {
                     <Table.Td>
                       {request.description.substring(0, 50)}...
                     </Table.Td>
-                    <Table.Td>{renderStatusBadge(request.status)}</Table.Td>
+                    <Table.Td ta="center">
+                      {renderStatusBadge(request.status)}
+                    </Table.Td>
                     <Table.Td>
+                      {request?.assigned?.name || "Unassigned"}
+                    </Table.Td>
+                    <Table.Td ta="end">
                       {format(
                         new Date(request.createdAt),
                         "MMM dd, yyyy HH:mm"
                       )}
                     </Table.Td>
                     <Table.Td>
-                      {request?.assigned?.name || "Unassigned"}
-                    </Table.Td>
-                    <Table.Td>
                       <Group gap="xs" justify="center">
                         {request.status === ServiceRequestStatus.OPEN && (
                           <ActionIcon
                             onClick={() => {
-                              assignForm.setFieldValue("id", request.id);
-                              openAssignUser();
+                              serviceRequestService
+                                .putAssignServiceRequest(request.id)
+                                .then(() => {
+                                  notifications.show({
+                                    title: "Success",
+                                    message:
+                                      "Service request has been assigned",
+                                    color: "green",
+                                  });
+                                  fetchServiceRequests();
+                                })
+                                .catch(() => {
+                                  notifications.show({
+                                    title: "Error",
+                                    message: "Failed to assign service request",
+                                    color: "red",
+                                  });
+                                });
                             }}
                             variant="light"
                             color="blue"
@@ -376,75 +333,6 @@ export default function ServiceRequestsPage() {
           </Group>
         </Box>
       </Card>
-
-      {/* Modal assign user */}
-      <Modal
-        opened={assignUserOpened}
-        onClose={() => {
-          assignForm.reset();
-          closeAssignUser();
-        }}
-        title="Assign PRS"
-        centered
-      >
-        <form
-          onSubmit={assignForm.onSubmit((value) => {
-            const { id, ...rest } = value;
-            if (!id) {
-              notifications.show({
-                title: "Error",
-                message: "Please select a PRS to assign",
-                color: "red",
-              });
-              return;
-            }
-
-            serviceRequestService
-              .update(id, {
-                ...rest,
-                status: ServiceRequestStatus.IN_PROGRESS,
-              })
-              .then(() => {
-                notifications.show({
-                  title: "Success",
-                  message: "Service request has been assigned",
-                  color: "green",
-                });
-                fetchServiceRequests();
-                closeAssignUser();
-              })
-              .catch((error) => {
-                console.error("Failed to assign service request:", error);
-                notifications.show({
-                  title: "Error",
-                  message: "Failed to assign service request",
-                  color: "red",
-                });
-              });
-          })}
-        >
-          <Select
-            label="Select PRS"
-            placeholder="Select a PRS"
-            data={users.map((user) => ({
-              value: user.id,
-              label: user.name,
-            }))}
-            required
-            {...assignForm.getInputProps("assignId")}
-            mb="md"
-          />
-
-          <Group justify="flex-end">
-            <Button variant="outline" onClick={closeAssignUser}>
-              Cancel
-            </Button>
-            <Button variant="light" type="submit">
-              Assign PRS
-            </Button>
-          </Group>
-        </form>
-      </Modal>
 
       {/* Delete confirmation modal */}
       <Modal

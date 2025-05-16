@@ -96,7 +96,7 @@ const getNavigationItems = (path: string, role?: Role) => {
       icon: <IconAdmin24 active={path == "/users"} />,
       label: "Users",
       href: "/users",
-      roles: [Role.ADMIN, Role.USER],
+      roles: [Role.ADMIN],
     },
     {
       icon: <IconTable active={path == "/retable"} />,
@@ -114,19 +114,19 @@ const getNavigationItems = (path: string, role?: Role) => {
       icon: <IconPrompt active={path == "/prompts"} />,
       label: "Prompts",
       href: "/prompts",
-      roles: [Role.ADMIN, Role.TABLE],
+      roles: [Role.ADMIN],
     },
     {
       icon: <IconNotice active={path == "/service-requests"} />,
       label: "Service Requests",
       href: "/service-requests",
-      roles: [Role.ADMIN, Role.USER],
+      roles: [Role.ADMIN, Role.TABLE, Role.USER],
     },
     {
       icon: <IconReport active={path == "/reports"} />,
       label: "Reports",
       href: "/reports",
-      roles: [Role.ADMIN, Role.USER, Role.TABLE],
+      roles: [Role.ADMIN],
     },
   ];
 
