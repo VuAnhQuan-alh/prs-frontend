@@ -258,7 +258,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
           <Box my="sm" ta="center">
             <Text size="xs" c="dimmed">
-              PRS System v1.0.0
+              PRS System v{process.env.NEXT_PUBLIC_APP_VERSION}
             </Text>
           </Box>
         </AppShell.Section>

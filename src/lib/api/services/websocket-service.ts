@@ -1,10 +1,12 @@
 "use client";
 
-import { NotificationType } from "../types/notifications";
-import { showNotification } from "@mantine/notifications";
 import { useEffect, useRef, useState } from "react";
-import { Prompt } from "../types/prompts";
 import { io, Socket } from "socket.io-client";
+
+import { showNotification } from "@mantine/notifications";
+
+import { NotificationType } from "../types/notifications";
+import { Prompt } from "../types/prompts";
 
 // Define WebSocket message types
 export interface WebSocketMessage {
@@ -92,10 +94,11 @@ export function useWebSocket() {
   const [mainSocket, setMainSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [promptSocket, setPromptSocket] = useState<Socket | null>(null);
   const [promptSocketConnected, setPromptSocketConnected] =
     useState<boolean>(false);
+
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const promptSocketReconnectRef = useRef<NodeJS.Timeout | null>(null);
 
   const connectWebSocket = () => {

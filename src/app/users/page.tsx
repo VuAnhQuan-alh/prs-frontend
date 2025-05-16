@@ -648,7 +648,7 @@ export default function UsersPage() {
                 { value: Role.TABLE, label: "Table Admin" },
                 { value: Role.USER, label: "FSR" },
               ]}
-              {...createForm.getInputProps("role")}
+              {...editForm.getInputProps("role")}
             />
             <Switch
               label="Is Active"

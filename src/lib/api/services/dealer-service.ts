@@ -11,7 +11,7 @@ class DealerService {
    * @param seatId Optional seat ID to target a specific seat for the dealer prompt
    * @returns Success message
    */
-  async startDealerRotation(
+  async handleDealerRotation(
     tableId: string,
     seatId?: string
   ): Promise<{ message: string }> {

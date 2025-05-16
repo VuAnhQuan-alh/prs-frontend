@@ -9,10 +9,8 @@ import {
   responseService,
   seatService,
   tableService,
-  userService,
 } from "@/lib/api/services";
 import { useWebSocket } from "@/lib/api/services/websocket-service";
-import { Manager, Role } from "@/lib/api/types/auth";
 import { Dealer } from "@/lib/api/types/dealers";
 import { Prompt, PromptStatusEnum } from "@/lib/api/types/prompts";
 import { Seat, SeatStatus, Table, TableStatus } from "@/lib/api/types/tables";
@@ -62,7 +60,9 @@ export default function RetablePage() {
   const [tableSeats, setTableSeats] = useState<Seat[]>([]);
   const [tablePrompts, setTablePrompts] = useState<Prompt[]>([]);
   const [tableDealers, setTableDealers] = useState<Dealer[]>([]);
-  const [, setManagers] = useState<Manager[]>([]);
+  const [tableTriggered, setTableTriggered] = useState(false);
+  // const [seatStart, setSeatStart] = useState<string | null>(null);
+  const [seatInter, setSeatInter] = useState<string | null>(null);
 
   // Track player responses
   const [playerResponses, setPlayerResponses] = useState<
@@ -180,7 +180,17 @@ export default function RetablePage() {
               (seat) => seat.id === payload.seatId
             );
             if (seatIndex !== -1 && seatIndex < tableSeatActive.length - 1) {
-              const nextSeatId = tableSeatActive[seatIndex + 1].id;
+              let nextSeatId = tableSeatActive[seatIndex + 1].id;
+              if (nextSeatId === seatInter) {
+                nextSeatId =
+                  tableSeatActive[
+                    seatIndex + 1 < tableSeatActive.length - 1
+                      ? seatIndex + 2
+                      : 0
+                  ].id;
+
+                setSeatInter(null);
+              }
               // Start dealer rotation with the next seat
               startDealerRotation(payload.tableId, nextSeatId);
             } else {
@@ -283,7 +293,7 @@ export default function RetablePage() {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastMessage?.type]);
+  }, [lastMessage]);
 
   // Subscribe to staff WebSocket channel when component mounts
   useEffect(() => {
@@ -302,7 +312,6 @@ export default function RetablePage() {
     // Fetch tables and prompts when the component mounts
     fetchTables();
     fetchPrompts();
-    fetchManagers();
   }, []);
 
   useEffect(() => {
@@ -379,24 +388,6 @@ export default function RetablePage() {
     }
   };
 
-  // Function to fetch managers from API
-  const fetchManagers = async () => {
-    try {
-      // Get users with manager role using the userService
-      const managers = await userService.getAll({ role: Role.TABLE });
-      setManagers(managers.docs);
-    } catch (error) {
-      console.error("Failed to fetch managers:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to load managers";
-      notifications.show({
-        title: "Error",
-        message: errorMessage,
-        color: "red",
-      });
-    }
-  };
-
   // Function to send prompt from API
   const fetchSendPrompt = async (promptId: string, tableId: string) => {
     try {
@@ -436,9 +427,11 @@ export default function RetablePage() {
   const startDealerRotation = async (tableId: string, initSeatId?: string) => {
     try {
       setWaitDealer(() => ({ check: true, id: "" }));
+      setTableTriggered(true);
 
       const tableSeatActive = tableSeats.filter(
-        (seat) => seat.number !== 0 && seat.user && seat.status === "ACTIVE"
+        (seat) =>
+          seat.number !== 0 && seat.user && seat.status === SeatStatus.ACTIVE
       );
 
       // Find or create the player-dealer prompt if it doesn't exist
@@ -479,19 +472,19 @@ export default function RetablePage() {
           // if only one dealer, get the next seat
           if (seatIndex !== -1 && seatIndex < tableSeatActive.length - 1) {
             seatId = tableSeatActive[seatIndex + 1].id;
+          } else {
+            seatId = tableSeatActive[0].id; // Default to the first seat if no next dealer found
           }
         } else {
-          if (seatIndex !== -1 && seatIndex < tableSeatActive.length - 1) {
-            seatId = tableSeatActive[seatIndex].id;
-          }
+          seatId = tableDealers[0].seatId;
         }
       } else if (!initSeatId) {
         seatId = tableSeatActive[0].id; // Default to the first seat if no next dealer found
       }
 
-      if (seatId) {
-        setWaitDealer({ check: true, id: seatId });
-      }
+      if (seatId) setWaitDealer({ check: true, id: seatId });
+
+      // if (seatId && !initSeatId) setSeatStart(seatId);
 
       // Send the dealer prompt to the table
       await promptService.update(dealerPrompt.id, {
@@ -501,7 +494,7 @@ export default function RetablePage() {
       });
 
       // Start the dealer rotation
-      const result = await dealerService.startDealerRotation(tableId, seatId);
+      const result = await dealerService.handleDealerRotation(tableId, seatId);
 
       // reset current prompt
       setSelectedTable((table) =>
@@ -876,6 +869,7 @@ export default function RetablePage() {
                 }
                 onClick={() => {
                   if (selectedTable && tablePrompt) {
+                    setTableTriggered(true);
                     setPlayerResponses({});
                     fetchSendPrompt(tablePrompt, selectedTable.id);
                   }
@@ -1009,6 +1003,7 @@ export default function RetablePage() {
                                         selectedTable.id,
                                         seat.id
                                       );
+                                      setSeatInter(seat.id);
                                     }
                                   }}
                                 >
@@ -1038,9 +1033,12 @@ export default function RetablePage() {
         <Grid.Col span={{ base: 12, md: 5 }}>
           <Card shadow="sm" padding="md" radius="md" mb="md">
             <Title order={3}>Active Session</Title>
-            <Title order={4} c={tablePrompt ? "blue" : "dimmed"}>
+            <Title
+              order={4}
+              c={tablePrompt && tableTriggered ? "blue" : "dimmed"}
+            >
               Current Prompt:{" "}
-              {tablePrompt
+              {tablePrompt && tableTriggered
                 ? tablePrompts.find((prompt) => prompt.id === tablePrompt)
                     ?.title
                 : "No prompt selected"}
@@ -1065,7 +1063,7 @@ export default function RetablePage() {
                           Seat {seat ? seat.number : "?"}
                         </MantineTable.Td>
                         <MantineTable.Td>
-                          {!tablePrompt
+                          {!tablePrompt || !tableTriggered
                             ? null
                             : response
                             ? response.activity

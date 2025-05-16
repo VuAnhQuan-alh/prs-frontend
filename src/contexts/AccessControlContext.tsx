@@ -13,21 +13,15 @@ const rolePermissions = {
     "/service-requests",
     "/reports",
   ],
-  [Role.TABLE]: [
-    "/retable",
-    "retable",
-    "/prompts",
-    "/service-requests",
-    "/reports",
-  ],
-  [Role.USER]: ["/users", "/service-requests", "/reports"],
+  [Role.TABLE]: ["/retable", "/service-requests"],
+  [Role.USER]: ["/service-requests"],
 };
 
 // Path that roles will be redirected to if they try to access an unauthorized route
 const roleDefaultPaths = {
   [Role.ADMIN]: "/dashboard",
   [Role.TABLE]: "/retable",
-  [Role.USER]: "/users",
+  [Role.USER]: "/service-requests",
 };
 
 interface AccessControlContextType {

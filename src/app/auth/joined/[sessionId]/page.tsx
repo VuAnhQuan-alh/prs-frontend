@@ -3,16 +3,18 @@
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 
+import { IconLogout } from "@/components/icons";
 import {
+  dealerService,
   responseService,
+  seatService,
   serviceRequestService,
   sessionService,
   tableService,
-  dealerService,
-  seatService,
 } from "@/lib/api/services";
 import { useWebSocket } from "@/lib/api/services/websocket-service";
 import { Prompt } from "@/lib/api/types/prompts";
+import { ResponseType } from "@/lib/api/types/responses";
 import { ServiceRequestType } from "@/lib/api/types/service-requests";
 import { ISession } from "@/lib/api/types/sessions";
 import { Seat, Table } from "@/lib/api/types/tables";
@@ -23,18 +25,16 @@ import {
   Card,
   Container,
   Flex,
+  Grid,
   Group,
   Paper,
-  Text,
-  Title,
-  Timeline,
   ScrollArea,
-  Grid,
+  Text,
+  Timeline,
+  Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconBell, IconRefresh, IconMessage } from "@tabler/icons-react";
-import { IconLogout } from "@/components/icons";
-import { ResponseType } from "@/lib/api/types/responses";
+import { IconBell, IconMessage, IconRefresh } from "@tabler/icons-react";
 
 type ResponseOption = ResponseType;
 
@@ -385,7 +385,16 @@ export default function UserPlayerPage({
   }, [sessions]);
 
   const handleResponse = async (response: ResponseOption) => {
-    if (!currentPrompt || !sessions) return;
+    if (!sessions) return;
+
+    if (currentPrompt) {
+      await responseService.create({
+        promptId: currentPrompt.id,
+        seatId: sessions.seatId,
+        type: response,
+        sessionId: sessions.id,
+      });
+    }
 
     try {
       setSelectedResponse(response);
@@ -402,26 +411,12 @@ export default function UserPlayerPage({
           sessionId: sessions.id,
         });
 
-        responseService.create({
-          promptId: currentPrompt.id,
-          seatId: sessions.seatId,
-          type: response,
-          sessionId: sessions.id,
-        });
-
         notifications.show({
           title: "Service Request Submitted",
           message: "Your service request has been sent to staff.",
           color: "blue",
         });
       } else {
-        await responseService.create({
-          promptId: currentPrompt.id,
-          seatId: sessions.seatId,
-          type: response,
-          sessionId: sessions.id,
-        });
-
         setHasResponded(true);
 
         notifications.show({
@@ -443,22 +438,6 @@ export default function UserPlayerPage({
             dealerResponse,
             sessions.name || sessions.user?.name
           );
-
-          // if (response === ResponseType.YES) {
-          //   notifications.show({
-          //     title: "Dealer Status",
-          //     message: "You will be the dealer for the next round.",
-          //     color: "green",
-          //     autoClose: false,
-          //   });
-          // } else {
-          //   notifications.show({
-          //     title: "Dealer Status",
-          //     message:
-          //       "You declined to be the dealer. The rotation will continue.",
-          //     color: "blue",
-          //   });
-          // }
         }
       }
     } catch (error) {
@@ -743,9 +722,7 @@ export default function UserPlayerPage({
                       : "light"
                   }
                   onClick={() => handleResponse(ResponseType.SERVICE_REQUEST)}
-                  disabled={
-                    !currentPrompt || hasResponded || tableActions !== null
-                  }
+                  disabled={!currentPrompt || tableActions !== null}
                   style={{
                     width: "105px",
                     height: "105px",
