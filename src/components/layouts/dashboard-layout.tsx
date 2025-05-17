@@ -233,7 +233,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 {user?.name || "User"}
               </Text>
               <Text size="xs" c="dimmed">
-                {user?.role || "Guest"}
+                {user?.role
+                  ? user.role === Role.ADMIN
+                    ? "Super Admin"
+                    : user.role === Role.TABLE
+                    ? "Table Admin"
+                    : "FSR"
+                  : "Guest"}
               </Text>
             </Box>
           </Group>

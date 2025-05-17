@@ -184,9 +184,7 @@ export default function ReportsPage() {
       return [
         response.tableAdmin?.name || "-",
         response.table?.name || "-",
-        response.seat?.number
-          ? "Seat " + String.fromCharCode(64 + response.seat.number)
-          : "-",
+        response.seat?.number ? "Seat " + response.seat.number : "-",
         response.prompt?.title || "Unknown Prompt",
         response.type || "-",
         new Date(response.createdAt).toLocaleString(),

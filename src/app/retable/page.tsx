@@ -844,11 +844,11 @@ export default function RetablePage() {
                 label="Send prompt to table"
                 placeholder="Select prompt"
                 data={tablePrompts
-                  .filter(
-                    (prompt) =>
-                      !prompt.title.toLowerCase().includes("player-dealer") &&
-                      !prompt.content.toLowerCase().includes("player-dealer")
-                  )
+                  // .filter(
+                  //   (prompt) =>
+                  //     !prompt.title.toLowerCase().includes("player-dealer") &&
+                  //     !prompt.content.toLowerCase().includes("player-dealer")
+                  // )
                   .map((prompt) => ({
                     value: prompt.id,
                     label: prompt.title,
@@ -888,7 +888,7 @@ export default function RetablePage() {
                 variant="light"
                 disabled={
                   !selectedTable ||
-                  selectedTable.status !== "ACTIVE" ||
+                  selectedTable.status !== TableStatus.ACTIVE ||
                   tableSeats.filter((seat) => seat.user).length < 2
                 }
                 onClick={() => {
