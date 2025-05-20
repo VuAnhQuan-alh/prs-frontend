@@ -8,6 +8,7 @@ import {
   ServiceRequest,
   ServiceRequestFilters,
   ServiceRequestStatus,
+  ServiceRequestType,
 } from "@/lib/api/types/service-requests";
 import {
   ActionIcon,
@@ -222,7 +223,11 @@ export default function ServiceRequestsPage() {
               ) : (
                 filteredRequests.map((request) => (
                   <Table.Tr key={request.id}>
-                    <Table.Td>{request.type.replace("_", " ")}</Table.Td>
+                    <Table.Td>
+                      {request.type === ServiceRequestType.PLAYER_DEALER
+                        ? "Player"
+                        : "Admin"}
+                    </Table.Td>
                     <Table.Td>
                       {request.description.substring(0, 50)}...
                     </Table.Td>

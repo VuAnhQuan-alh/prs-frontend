@@ -1,28 +1,30 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  AppShell,
-  Burger,
-  Group,
-  UnstyledButton,
-  Stack,
-  Avatar,
-  Text,
-  Divider,
-  Box,
-  ScrollArea,
-  Button,
-  Container,
-  useMantineTheme,
-  rem,
-} from "@mantine/core";
-import { IconLogout } from "@tabler/icons-react";
-import { Role } from "@/lib/api/types/auth";
+import { useState } from "react";
+
 import { useAccessControl } from "@/contexts/AccessControlContext";
 import { authService } from "@/lib/api/services";
+import { Role } from "@/lib/api/types/auth";
+import {
+  AppShell,
+  Avatar,
+  Box,
+  Burger,
+  Button,
+  Container,
+  Divider,
+  Group,
+  rem,
+  ScrollArea,
+  Stack,
+  Text,
+  UnstyledButton,
+  useMantineTheme,
+} from "@mantine/core";
+import { IconLogout } from "@tabler/icons-react";
+
 import {
   IconAdmin24,
   IconDashboard,
@@ -31,7 +33,8 @@ import {
   IconReport,
   IconTable,
 } from "../icons";
-import Image from "next/image";
+
+// import Image from "next/image";
 
 interface NavLinkProps {
   icon: React.ReactNode;
@@ -171,14 +174,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               size="sm"
               mr="sm"
             />
-            <Image
+            {/* <Image
               src="/images/logo-auth.png"
               width="35"
               height="42"
               alt="logo layout"
-            />
+            /> */}
             <Text
               size="lg"
+              ml={18}
               fw={700}
               variant="gradient"
               gradient={{ from: "blue", to: "cyan", deg: 90 }}

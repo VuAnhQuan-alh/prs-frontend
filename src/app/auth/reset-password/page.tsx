@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+// import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -81,12 +81,12 @@ export default function ResetPasswordPage() {
   if (!token) {
     return (
       <Box className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-        <Image
+        {/* <Image
           src="/images/logo-auth.png"
           width="84"
           height="100"
           alt="logo auth"
-        />
+        /> */}
         <Paper radius="md" p="xl" className="w-full max-w-md mt-20">
           <Alert
             icon={<IconAlertCircle size="1rem" />}
@@ -107,12 +107,12 @@ export default function ResetPasswordPage() {
 
   return (
     <Box className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-      <Image
+      {/* <Image
         src="/images/logo-auth.png"
         width="84"
         height="100"
         alt="logo auth"
-      />
+      /> */}
 
       <Paper radius="md" p="xl" className="w-full max-w-md mt-20">
         <Title ta="center" c="#228ED0" order={2} mb="sm">

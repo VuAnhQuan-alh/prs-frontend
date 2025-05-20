@@ -39,6 +39,7 @@ import {
   IconUserHexagon,
   IconUserX,
 } from "@tabler/icons-react";
+import { useAccessControl } from "@/contexts/AccessControlContext";
 
 // Define an interface for player responses
 interface PlayerResponse {
@@ -53,9 +54,9 @@ interface PlayerResponse {
 }
 
 export default function RetablePage() {
-  const [loading, setLoading] = useState(false);
-  // const [opened, { open, close }] = useDisclosure(false);
+  const { currentUser } = useAccessControl();
 
+  const [loading, setLoading] = useState(false);
   const [tables, setTables] = useState<Table[]>([]);
   const [tableSeats, setTableSeats] = useState<Seat[]>([]);
   const [tablePrompts, setTablePrompts] = useState<Prompt[]>([]);
@@ -618,10 +619,18 @@ export default function RetablePage() {
                 flex={1}
                 label="Select table"
                 placeholder="Select table"
-                data={tables.map((table) => ({
-                  value: table.id,
-                  label: `Table ${table.name}`,
-                }))}
+                data={tables
+                  .sort((a, b) => {
+                    if (a.status === b.status) return 0;
+                    return a.status === TableStatus.ACTIVE ? -1 : 1;
+                  })
+                  .map((table) => ({
+                    value: table.id,
+                    label: `Table ${table.name}`,
+                    disabled:
+                      table.status === TableStatus.ACTIVE &&
+                      table.userId !== currentUser?.id,
+                  }))}
                 value={selectedTable?.id || ""}
                 searchable
                 clearable
@@ -972,13 +981,20 @@ export default function RetablePage() {
                                     color="orange"
                                     onClick={() => {
                                       if (selectedTable) {
-                                        tableService.sendAction(
-                                          selectedTable.id,
-                                          {
+                                        tableService
+                                          .sendAction(selectedTable.id, {
                                             action: "TERMINATE",
                                             seatId: seat.id,
-                                          }
-                                        );
+                                          })
+                                          .then(() => {
+                                            setTableSeats((prev) =>
+                                              prev.map((s) =>
+                                                s.id === seat.id
+                                                  ? { ...s, user: null }
+                                                  : s
+                                              )
+                                            );
+                                          });
                                       }
                                     }}
                                   >
