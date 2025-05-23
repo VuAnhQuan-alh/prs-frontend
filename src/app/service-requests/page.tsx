@@ -236,9 +236,7 @@ export default function ServiceRequestsPage() {
                         ? "Player"
                         : "Admin"}
                     </Table.Td>
-                    <Table.Td>
-                      {request.description.substring(0, 50)}...
-                    </Table.Td>
+                    <Table.Td>{request.description}</Table.Td>
                     <Table.Td ta="center">
                       {renderStatusBadge(request.status)}
                     </Table.Td>

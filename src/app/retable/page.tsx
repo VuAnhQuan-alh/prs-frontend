@@ -614,7 +614,7 @@ export default function RetablePage() {
     try {
       const response = await tableService.sendNoteFSR(
         selectedTable.id,
-        tableMessage
+        tableMessage + ` (Table ${selectedTable.name})`
       );
 
       notifications.show({
@@ -861,7 +861,9 @@ export default function RetablePage() {
               <TextInput
                 flex={1}
                 label="Notes to FSR"
-                placeholder="Enter notes"
+                placeholder={`Enter notes ${
+                  selectedTable ? `for ${selectedTable.name}` : ""
+                }`}
                 value={tableMessage}
                 onChange={(e) => setTableMessage(e.target.value)}
                 maxLength={500}
