@@ -222,7 +222,15 @@ export default function ServiceRequestsPage() {
                 </Table.Tr>
               ) : (
                 filteredRequests.map((request) => (
-                  <Table.Tr key={request.id}>
+                  <Table.Tr
+                    key={request.id}
+                    style={{
+                      backgroundColor:
+                        request.type === ServiceRequestType.TABLE_ADMIN
+                          ? "rgba(255, 249, 219, 0.75)"
+                          : undefined,
+                    }}
+                  >
                     <Table.Td>
                       {request.type === ServiceRequestType.PLAYER_DEALER
                         ? "Player"
@@ -238,10 +246,7 @@ export default function ServiceRequestsPage() {
                       {request?.assigned?.name || "Unassigned"}
                     </Table.Td>
                     <Table.Td ta="end">
-                      {format(
-                        new Date(request.createdAt),
-                        "MMM dd, yyyy HH:mm"
-                      )}
+                      {format(new Date(request.createdAt), "MM/dd/yyyy")}
                     </Table.Td>
                     <Table.Td>
                       <Group gap="xs" justify="center">

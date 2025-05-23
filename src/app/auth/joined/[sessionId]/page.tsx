@@ -57,6 +57,7 @@ export default function UserPlayerPage({
 }) {
   const sessionId = use(params).sessionId;
   const router = useRouter();
+  const [firstLoad, setFirstLoad] = useState(true);
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<ISessionPlayer | null>(null);
   const [currentPrompt, setCurrentPrompt] = useState<Prompt | null>(null);
@@ -114,7 +115,17 @@ export default function UserPlayerPage({
           setHasResponded(false);
 
           // Reset seat responses when a new prompt is received
-          setSeatResponses({});
+          if (payload.prompt && currentPrompt) {
+            if (currentPrompt.id !== payload.prompt.id) {
+              setSeatResponses({});
+            } else {
+              // If the prompt is the same, we don't reset seat responses
+              setSeatResponses((prev) => ({
+                ...prev,
+                [sessions.seatId]: null,
+              }));
+            }
+          }
 
           if (payload.prompt) {
             setCurrentPrompt(payload.prompt);
@@ -179,6 +190,7 @@ export default function UserPlayerPage({
         console.log("Table response received:", payload, sessions);
 
         if (sessions.seat.table.id === payload.tableId) {
+          setFirstLoad(false);
           // Update the seatResponses state
           setSeatResponses((prev) => ({
             ...prev,
@@ -447,6 +459,8 @@ export default function UserPlayerPage({
         message: "Failed to submit response. Please try again.",
         color: "red",
       });
+    } finally {
+      setFirstLoad(false);
     }
   };
 
@@ -565,9 +579,7 @@ export default function UserPlayerPage({
                   </Group>
                   <Text size="sm" c="#596063">
                     You are seated at Table {sessions?.seat.table?.name}, Seat{" "}
-                    {String.fromCharCode(
-                      64 + Number(sessions?.seat?.number || 0)
-                    )}
+                    {sessions?.seat?.number}
                   </Text>
                 </Box>
               </Group>
@@ -591,18 +603,22 @@ export default function UserPlayerPage({
                         key={seat.id}
                         p="md"
                         withBorder
-                        style={{
-                          borderLeft: `4px solid ${
-                            seatResponses[seat.id] === ResponseType.YES
-                              ? "green"
-                              : seatResponses[seat.id] === ResponseType.NO
-                              ? "red"
-                              : seatResponses[seat.id] ===
-                                ResponseType.SERVICE_REQUEST
-                              ? "yellow"
-                              : "gray"
-                          }`,
-                        }}
+                        style={
+                          firstLoad || seat.sessionId
+                            ? {}
+                            : {
+                                borderLeft: `4px solid ${
+                                  seatResponses[seat.id] === ResponseType.YES
+                                    ? "green"
+                                    : seatResponses[seat.id] === ResponseType.NO
+                                    ? "red"
+                                    : seatResponses[seat.id] ===
+                                      ResponseType.SERVICE_REQUEST
+                                    ? "yellow"
+                                    : "gray"
+                                }`,
+                              }
+                        }
                       >
                         <Group justify="space-between">
                           <Text fw={500}>Seat {seat.number}</Text>
@@ -742,7 +758,10 @@ export default function UserPlayerPage({
                   mt="md"
                   style={{ opacity: 0.7 }}
                 >
-                  Thank you for your response!{" "}
+                  {selectedResponse === ResponseType.SERVICE_REQUEST
+                    ? "Thank you, we received your request."
+                    : "Thank you for your response!"}
+                  &nbsp;
                   {isDealerPrompt
                     ? selectedResponse === ResponseType.YES
                       ? "You will be notified when your dealer session begins."

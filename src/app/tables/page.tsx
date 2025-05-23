@@ -93,8 +93,8 @@ export default function TablesPage() {
       name: (value) =>
         !value.trim()
           ? "Table name is required"
-          : value.trim().length < 2
-          ? "Name must be at least 2 characters"
+          : value.trim().length < 1
+          ? "Name must be at least 1 characters"
           : null,
       capacity: (value) =>
         !value || value <= 0 ? "Capacity must be greater than 0" : null,

@@ -16,6 +16,7 @@ import {
   Container,
   Divider,
   Group,
+  Modal,
   rem,
   ScrollArea,
   Stack,
@@ -23,6 +24,7 @@ import {
   UnstyledButton,
   useMantineTheme,
 } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconLogout } from "@tabler/icons-react";
 
 import {
@@ -144,6 +146,32 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { currentUser: user, setupUser } = useAccessControl();
   const navLinks = getNavigationItems(pathname, user?.role);
 
+  // Add state for logout confirmation modal
+  const [
+    logoutModalOpened,
+    { open: openLogoutModal, close: closeLogoutModal },
+  ] = useDisclosure(false);
+
+  const handleLogout = async (e: React.MouseEvent) => {
+    // check user role is table, show popup to confirm logout
+    if (user?.role === Role.TABLE) {
+      e.stopPropagation();
+      e.preventDefault();
+      openLogoutModal();
+      return;
+    }
+
+    await authService.logout();
+    setupUser(null);
+  };
+
+  // Handle confirmed logout from modal
+  const handleConfirmedLogout = async () => {
+    await authService.logout();
+    setupUser(null);
+    closeLogoutModal();
+  };
+
   return (
     <AppShell
       header={{ height: 70 }}
@@ -255,11 +283,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               radius="md"
               component={Link}
               href="/"
-              onClick={async (e) => {
-                e.stopPropagation();
-                await authService.logout();
-                setupUser(null);
-              }}
+              onClick={handleLogout}
               fullWidth
             >
               Logout
@@ -279,6 +303,41 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {children}
         </Container>
       </AppShell.Main>
+
+      {/* Logout Confirmation Modal for TABLE role users */}
+      <Modal
+        opened={logoutModalOpened}
+        onClose={closeLogoutModal}
+        // title="Confirm Logout"
+        title={
+          <Text size="lg" fw={500} color="red">
+            Confirm Logout
+          </Text>
+        }
+        centered
+      >
+        <Text mb="md" fw={500}>
+          Are you sure you want to logout?
+        </Text>
+        <Text mb="md" color="dimmed">
+          There&apos;s an active Table session, which will be terminated. Are
+          you sure you want to log-out?
+        </Text>
+
+        <Group justify="right">
+          <Button variant="outline" onClick={closeLogoutModal}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmedLogout}
+            color="red"
+            component={Link}
+            href="/"
+          >
+            Logout
+          </Button>
+        </Group>
+      </Modal>
     </AppShell>
   );
 }

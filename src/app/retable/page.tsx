@@ -95,6 +95,38 @@ export default function RetablePage() {
         type: "JOINED" | "LEFT";
       };
 
+      // If type is LEFT, and seat is prompted, next seat is prompted
+      if (payload.type === "LEFT" && waitDealer?.id === payload.seatId) {
+        const tableSeatActive = tableSeats.filter(
+          (seat) => seat.number !== 0 && seat.user && seat.status === "ACTIVE"
+        );
+        const seatIndex = tableSeatActive.findIndex(
+          (seat) => seat.id === payload.seatId
+        );
+        if (seatIndex !== -1 && seatIndex < tableSeatActive.length - 1) {
+          let nextSeatId = tableSeatActive[seatIndex + 1].id;
+          if (nextSeatId === seatInter) {
+            nextSeatId =
+              tableSeatActive[
+                seatIndex + 1 < tableSeatActive.length - 1 ? seatIndex + 2 : 0
+              ].id;
+
+            setSeatInter(null);
+          }
+          // Start dealer rotation with the next seat
+          startDealerRotation(payload.tableId, nextSeatId);
+        } else {
+          // If no more candidates, show notification
+          notifications.show({
+            title: "No More Candidates",
+            message: "No more candidates for dealer rotation.",
+            color: "red",
+            icon: <IconUserX size="1.1rem" />,
+            autoClose: 5000,
+          });
+        }
+      }
+
       // If the update is for the currently selected table, refresh the seat data
       if (selectedTable && selectedTable.id === payload.tableId) {
         // fetchTableDetails(selectedTable.id);

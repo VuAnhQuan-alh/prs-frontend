@@ -19,6 +19,7 @@ import { responseService, tableService, userService } from "@/lib/api/services";
 import { Response, ResponseType } from "@/lib/api/types/responses";
 import { notifications } from "@mantine/notifications";
 import { Role } from "@/lib/api/types/auth";
+import { format } from "date-fns";
 
 interface ReportSearchParams {
   tableId?: string;
@@ -381,7 +382,7 @@ export default function ReportsPage() {
                       )}
                     </Table.Td>
                     <Table.Td ta="end">
-                      {new Date(response.createdAt).toLocaleString()}
+                      {format(new Date(response.createdAt), "MM/dd/yyyy")}
                     </Table.Td>
                   </Table.Tr>
                 ))
