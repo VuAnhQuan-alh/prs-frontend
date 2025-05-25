@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useAccessControl } from "@/contexts/AccessControlContext";
 import { authService } from "@/lib/api/services";
@@ -21,11 +21,16 @@ import {
   ScrollArea,
   Stack,
   Text,
+  Tooltip,
   UnstyledButton,
   useMantineTheme,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconLogout } from "@tabler/icons-react";
+import {
+  IconChevronLeft,
+  IconChevronRight,
+  IconLogout,
+} from "@tabler/icons-react";
 
 import {
   IconAdmin24,
@@ -43,10 +48,18 @@ interface NavLinkProps {
   label: string;
   href: string;
   active?: boolean;
+  collapsed?: boolean;
   onClick?: () => void;
 }
 
-function NavLink({ icon, label, href, active, onClick }: NavLinkProps) {
+function NavLink({
+  icon,
+  label,
+  href,
+  active,
+  collapsed,
+  onClick,
+}: NavLinkProps) {
   const theme = useMantineTheme();
 
   return (
@@ -58,25 +71,46 @@ function NavLink({ icon, label, href, active, onClick }: NavLinkProps) {
       style={{
         display: "block",
         width: "100%",
-        padding: `${rem(10)} ${rem(16)}`,
+        padding: `${rem(10)} ${collapsed ? "12px" : rem(16)}`,
         borderRadius: theme.radius.md,
         color: theme.colors.dark[9],
         backgroundColor: active ? "#228ED01A" : "transparent",
+        transition: "background-color 0.2s ease, padding 0.3s ease",
         "&:hover": {
           backgroundColor: `rgba(${theme.colors.gray[5]}, 0.08)`,
         },
       }}
     >
-      <Group justify="space-between" wrap="nowrap">
-        <Group gap="sm">
-          {icon}
-          <Text
-            size="sm"
-            c={active ? "#228ED0" : "#262F33"}
-            fw={active ? 600 : 500}
+      <Group justify={collapsed ? "center" : "space-between"} wrap="nowrap">
+        <Group gap={collapsed ? "xs" : "sm"} style={{ overflow: "hidden" }}>
+          <Tooltip
+            label={label}
+            position="right"
+            disabled={!collapsed}
+            withArrow
+            transitionProps={{ duration: 200 }}
           >
-            {label}
-          </Text>
+            <Box>{icon}</Box>
+          </Tooltip>
+          <div
+            style={{
+              maxWidth: collapsed ? 0 : "180px",
+              opacity: collapsed ? 0 : 1,
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+              transition: "max-width 0.3s ease, opacity 0.2s ease",
+              transitionDelay: collapsed ? "0s" : "0.1s",
+              display: collapsed ? "none" : "block",
+            }}
+          >
+            <Text
+              size="sm"
+              c={active ? "#228ED0" : "#262F33"}
+              fw={active ? 600 : 500}
+            >
+              {label}
+            </Text>
+          </div>
         </Group>
       </Group>
     </UnstyledButton>
@@ -140,6 +174,7 @@ const getNavigationItems = (path: string, role?: Role) => {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [opened, setOpened] = useState(false);
+  const [navbarCollapsed, setNavbarCollapsed] = useState(false);
   const pathname = usePathname();
   const theme = useMantineTheme();
 
@@ -172,11 +207,23 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     closeLogoutModal();
   };
 
+  // Toggle navbar collapse state
+  const toggleNavbar = () => {
+    setNavbarCollapsed(!navbarCollapsed);
+  };
+
+  useEffect(() => {
+    if (user?.role === Role.TABLE) {
+      // If user is TABLE, always collapse navbar
+      setNavbarCollapsed(true);
+    }
+  }, [user?.role]);
+
   return (
     <AppShell
       header={{ height: 70 }}
       navbar={{
-        width: 240,
+        width: navbarCollapsed ? 82 : 240,
         breakpoint: "sm",
         collapsed: { mobile: !opened },
       }}
@@ -184,6 +231,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       styles={{
         main: {
           background: theme.colors.gray[0],
+        },
+        navbar: {
+          transition: "width 0.3s ease",
         },
       }}
     >
@@ -202,12 +252,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               size="sm"
               mr="sm"
             />
-            {/* <Image
-              src="/images/logo-auth.png"
-              width="35"
-              height="42"
-              alt="logo layout"
-            /> */}
             <Text
               size="lg"
               ml={18}
@@ -237,16 +281,55 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 label={link.label}
                 href={link.href}
                 active={pathname === link.href}
+                collapsed={navbarCollapsed}
                 onClick={() => setOpened(false)}
               />
             ))}
           </Stack>
         </AppShell.Section>
 
+        <AppShell.Section mb="md">
+          <Group justify="center">
+            <Tooltip
+              label={navbarCollapsed ? "Expand menu" : "Collapse menu"}
+              position="right"
+              withArrow
+              transitionProps={{ duration: 200 }}
+            >
+              <Button
+                onClick={toggleNavbar}
+                variant="subtle"
+                size="xs"
+                px={4}
+                fullWidth
+                color="gray"
+              >
+                {navbarCollapsed ? (
+                  <IconChevronRight size={18} />
+                ) : (
+                  <IconChevronLeft size={18} />
+                )}
+              </Button>
+            </Tooltip>
+          </Group>
+        </AppShell.Section>
+
         <AppShell.Section>
           <Divider
             my="sm"
-            label="User Actions"
+            label={
+              <div
+                style={{
+                  maxWidth: navbarCollapsed ? 0 : "180px",
+                  opacity: navbarCollapsed ? 0 : 1,
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                  transition: "max-width 0.3s ease, opacity 0.2s ease",
+                }}
+              >
+                User Actions
+              </div>
+            }
             labelPosition="center"
             styles={{
               label: {
@@ -256,45 +339,95 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             }}
           />
 
-          <Group mb="md">
+          <Group mb="md" justify={navbarCollapsed ? "center" : "flex-start"}>
             <Avatar color="blue" radius="xl" size="md">
               {user?.name ? user.name.charAt(0) : "U"}
             </Avatar>
-            <Box style={{ textAlign: "left" }}>
-              <Text size="sm" fw={500}>
-                {user?.name || "User"}
-              </Text>
-              <Text size="xs" c="dimmed">
-                {user?.role
-                  ? user.role === Role.ADMIN
-                    ? "Super Admin"
-                    : user.role === Role.TABLE
-                    ? "Table Admin"
-                    : "FSR"
-                  : "Guest"}
-              </Text>
-            </Box>
+            <div
+              style={{
+                maxWidth: navbarCollapsed ? 0 : "180px",
+                display: navbarCollapsed ? "none" : "block",
+                overflow: "hidden",
+                transition: "max-width 0.3s ease, opacity 0.2s ease",
+              }}
+            >
+              <Box style={{ textAlign: "left" }}>
+                <Text size="sm" fw={500}>
+                  {user?.name || "User"}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  {user?.role
+                    ? user.role === Role.ADMIN
+                      ? "Super Admin"
+                      : user.role === Role.TABLE
+                      ? "Table Admin"
+                      : "FSR"
+                    : "Guest"}
+                </Text>
+              </Box>
+            </div>
           </Group>
 
           <Group grow mb="md">
-            <Button
-              leftSection={<IconLogout size="1rem" />}
-              variant="light"
-              radius="md"
-              component={Link}
-              href="/"
-              onClick={handleLogout}
-              fullWidth
+            <Tooltip
+              label="Logout"
+              position="right"
+              disabled={!navbarCollapsed}
+              withArrow
+              transitionProps={{ duration: 200 }}
             >
-              Logout
-            </Button>
+              <Button
+                variant="light"
+                radius="md"
+                component={Link}
+                href="/"
+                onClick={handleLogout}
+                fullWidth
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {navbarCollapsed ? (
+                    <IconLogout size="1rem" />
+                  ) : (
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <IconLogout size="1rem" style={{ marginRight: "8px" }} />
+                      <span
+                        style={{
+                          maxWidth: navbarCollapsed ? "0" : "100px",
+                          opacity: navbarCollapsed ? 0 : 1,
+                          overflow: "hidden",
+                          whiteSpace: "nowrap",
+                          transition: "max-width 0.2s ease, opacity 0.2s ease",
+                        }}
+                      >
+                        Logout
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </Button>
+            </Tooltip>
           </Group>
 
-          <Box my="sm" ta="center">
-            <Text size="xs" c="dimmed">
-              PRS System v{process.env.NEXT_PUBLIC_APP_VERSION}
-            </Text>
-          </Box>
+          <div
+            style={{
+              maxHeight: navbarCollapsed ? "0" : "30px",
+              opacity: navbarCollapsed ? 0 : 1,
+              overflow: "hidden",
+              transition: "max-height 0.3s ease, opacity 0.3s ease",
+            }}
+          >
+            <Box my="sm" ta="center">
+              <Text size="xs" c="dimmed">
+                PRS System v{process.env.NEXT_PUBLIC_APP_VERSION}
+              </Text>
+            </Box>
+          </div>
         </AppShell.Section>
       </AppShell.Navbar>
 

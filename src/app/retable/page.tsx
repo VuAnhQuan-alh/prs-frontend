@@ -98,11 +98,16 @@ export default function RetablePage() {
       // If type is LEFT, and seat is prompted, next seat is prompted
       if (payload.type === "LEFT" && waitDealer?.id === payload.seatId) {
         const tableSeatActive = tableSeats.filter(
-          (seat) => seat.number !== 0 && seat.user && seat.status === "ACTIVE"
+          (seat) =>
+            (seat.number !== 0 &&
+              seat.user &&
+              seat.status === SeatStatus.ACTIVE) ||
+            seat.id === payload.seatId
         );
         const seatIndex = tableSeatActive.findIndex(
           (seat) => seat.id === payload.seatId
         );
+
         if (seatIndex !== -1 && seatIndex < tableSeatActive.length - 1) {
           let nextSeatId = tableSeatActive[seatIndex + 1].id;
           if (nextSeatId === seatInter) {
@@ -111,7 +116,7 @@ export default function RetablePage() {
                 seatIndex + 1 < tableSeatActive.length - 1 ? seatIndex + 2 : 0
               ].id;
 
-            setSeatInter(null);
+            setSeatInter(nextSeatId);
           }
           // Start dealer rotation with the next seat
           startDealerRotation(payload.tableId, nextSeatId);

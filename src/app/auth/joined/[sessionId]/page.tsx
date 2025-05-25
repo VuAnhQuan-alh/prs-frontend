@@ -254,6 +254,23 @@ export default function UserPlayerPage({
             setTableActions(null);
           }
         }
+      } else if (lastMessage.type === "SEAT_UPDATE") {
+        // Handle seat updates
+        const payload = lastMessage.payload as {
+          seatId: string;
+          tableId: string;
+          userName: string;
+          type: "JOINED" | "LEFT";
+        };
+        console.log("Seat update received:", payload, sessions);
+
+        if (sessions.seat.table.id === payload.tableId) {
+          // update the seat responses
+          setSeatResponses((prev) => ({
+            ...prev,
+            [payload.seatId]: null, // Reset response for this seat
+          }));
+        }
       }
     }
 
@@ -561,7 +578,8 @@ export default function UserPlayerPage({
         )}
 
         <Grid gutter="md">
-          <Grid.Col span={{ base: 12, sm: 6 }}>
+          {/* Reverse column order on mobile - player info and prompt comes first */}
+          <Grid.Col span={{ base: 12, sm: 6 }} order={{ base: 2, sm: 1 }}>
             {/* Table seats */}
             <Card p="lg" radius="xl" bg="white">
               <Title order={3} mb="md">
@@ -618,7 +636,7 @@ export default function UserPlayerPage({
             </Card>
           </Grid.Col>
 
-          <Grid.Col span={{ base: 12, sm: 6 }}>
+          <Grid.Col span={{ base: 12, sm: 6 }} order={{ base: 1, sm: 2 }}>
             {/* information seat */}
             <Card p="lg" radius="xl" mb="md" bg="white">
               <Group justify="apart">
