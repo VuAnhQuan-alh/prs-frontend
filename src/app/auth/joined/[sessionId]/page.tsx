@@ -695,10 +695,7 @@ export default function UserPlayerPage({
                   }
                   onClick={() => handleResponse(ResponseType.YES)}
                   disabled={
-                    !currentPrompt ||
-                    hasResponded ||
-                    tableActions !== null ||
-                    firstLoad
+                    !currentPrompt || hasResponded || tableActions !== null
                   }
                   style={{
                     width: "105px",
@@ -719,10 +716,7 @@ export default function UserPlayerPage({
                   }
                   onClick={() => handleResponse(ResponseType.NO)}
                   disabled={
-                    !currentPrompt ||
-                    hasResponded ||
-                    tableActions !== null ||
-                    firstLoad
+                    !currentPrompt || hasResponded || tableActions !== null
                   }
                   style={{
                     width: "105px",
