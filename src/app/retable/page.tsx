@@ -954,7 +954,7 @@ export default function RetablePage() {
                   <MantineTable.Th ta="center">Status</MantineTable.Th>
                   <MantineTable.Th>Activity</MantineTable.Th>
                   <MantineTable.Th>Response</MantineTable.Th>
-                  <MantineTable.Th>Timestamp</MantineTable.Th>
+                  <MantineTable.Th miw={160}>Timestamp</MantineTable.Th>
                   <MantineTable.Th ta="center">Action</MantineTable.Th>
                 </MantineTable.Tr>
               </MantineTable.Thead>
@@ -1001,7 +1001,7 @@ export default function RetablePage() {
                           {response && response.timestamp
                             ? format(
                                 new Date(response.timestamp),
-                                "MM/dd hh:mm a"
+                                "MM/dd HH:mm"
                               )
                             : ""}
                         </MantineTable.Td>

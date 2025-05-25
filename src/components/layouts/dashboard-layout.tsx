@@ -176,7 +176,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <AppShell
       header={{ height: 70 }}
       navbar={{
-        width: 280,
+        width: 240,
         breakpoint: "sm",
         collapsed: { mobile: !opened },
       }}

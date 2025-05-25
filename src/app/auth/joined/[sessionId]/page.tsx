@@ -28,13 +28,13 @@ import {
   Grid,
   Group,
   Paper,
-  ScrollArea,
+  // ScrollArea,
   Text,
-  Timeline,
+  // Timeline,
   Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconBell, IconMessage, IconRefresh } from "@tabler/icons-react";
+import { IconBell, IconRefresh } from "@tabler/icons-react";
 
 type ResponseOption = ResponseType;
 
@@ -43,12 +43,12 @@ type ISessionPlayer = ISession & {
 };
 
 // Interface for table messages
-interface TableMessage {
-  tableId: string;
-  tableName: string;
-  message: string;
-  timestamp: Date;
-}
+// interface TableMessage {
+//   tableId: string;
+//   tableName: string;
+//   message: string;
+//   timestamp: Date;
+// }
 
 export default function UserPlayerPage({
   params,
@@ -67,8 +67,8 @@ export default function UserPlayerPage({
   const [realtimeStatus, setRealtimeStatus] = useState<
     "disconnected" | "connecting" | "connected"
   >("connecting");
-  const [tableMessages, setTableMessages] = useState<TableMessage[]>([]);
-  const [showMessageHistory, setShowMessageHistory] = useState(false);
+  // const [tableMessages, setTableMessages] = useState<TableMessage[]>([]);
+  // const [showMessageHistory, setShowMessageHistory] = useState(false);
   const [isDealerPrompt, setIsDealerPrompt] = useState(false);
   const [tableSeats, setTableSeats] = useState<Seat[]>([]);
   const [seatResponses, setSeatResponses] = useState<
@@ -158,28 +158,26 @@ export default function UserPlayerPage({
           }
         }
       } else if (lastMessage.type === "TABLE_MESSAGE") {
-        console.log("Received table message:", lastMessage);
-        const payload = lastMessage.payload as TableMessage;
-
-        if (sessions.seat.table.id === payload.tableId) {
-          setTableMessages((prevMessages) => [
-            {
-              tableId: payload.tableId,
-              tableName: payload.tableName,
-              message: payload.message,
-              timestamp: new Date(payload.timestamp),
-            },
-            ...prevMessages,
-          ]);
-
-          notifications.show({
-            title: `Message from Table ${payload.tableName}`,
-            message: payload.message,
-            color: "blue",
-            icon: <IconMessage size="1.1rem" />,
-            autoClose: 10000,
-          });
-        }
+        // console.log("Received table message:", lastMessage);
+        // const payload = lastMessage.payload as TableMessage;
+        // if (sessions.seat.table.id === payload.tableId) {
+        //   setTableMessages((prevMessages) => [
+        //     {
+        //       tableId: payload.tableId,
+        //       tableName: payload.tableName,
+        //       message: payload.message,
+        //       timestamp: new Date(payload.timestamp),
+        //     },
+        //     ...prevMessages,
+        //   ]);
+        //   notifications.show({
+        //     title: `Message from Table ${payload.tableName}`,
+        //     message: payload.message,
+        //     color: "blue",
+        //     icon: <IconMessage size="1.1rem" />,
+        //     autoClose: 10000,
+        //   });
+        // }
       } else if (lastMessage.type === "TABLE_RESPONSE") {
         // Handle new table response notification
         const payload = lastMessage.payload as {
@@ -564,6 +562,63 @@ export default function UserPlayerPage({
 
         <Grid gutter="md">
           <Grid.Col span={{ base: 12, sm: 6 }}>
+            {/* Table seats */}
+            <Card p="lg" radius="xl" bg="white">
+              <Title order={3} mb="md">
+                Table Seats
+              </Title>
+              {tableSeats.length === 0 ? (
+                <Text c="dimmed" ta="center">
+                  No seats available for this table
+                </Text>
+              ) : (
+                <Flex direction="column" gap="sm">
+                  {tableSeats
+                    .filter((seat) => seat.number !== 0)
+                    .map((seat) => (
+                      <Paper
+                        key={seat.id}
+                        p="md"
+                        withBorder
+                        style={
+                          firstLoad || !seat.user
+                            ? {}
+                            : {
+                                borderLeft: `4px solid ${
+                                  seatResponses[seat.id] === ResponseType.YES
+                                    ? "green"
+                                    : seatResponses[seat.id] === ResponseType.NO
+                                    ? "red"
+                                    : seatResponses[seat.id] ===
+                                      ResponseType.SERVICE_REQUEST
+                                    ? "yellow"
+                                    : "gray"
+                                }`,
+                              }
+                        }
+                      >
+                        <Group justify="space-between">
+                          <Text fw={500}>Seat {seat.number}</Text>
+                          <Text c="dimmed">
+                            {firstLoad || !seat.user
+                              ? ""
+                              : seatResponses[seat.id]
+                              ? seatResponses[seat.id] === ResponseType.YES
+                                ? "Yes"
+                                : seatResponses[seat.id] === ResponseType.NO
+                                ? "No"
+                                : "Service Request"
+                              : "No response"}
+                          </Text>
+                        </Group>
+                      </Paper>
+                    ))}
+                </Flex>
+              )}
+            </Card>
+          </Grid.Col>
+
+          <Grid.Col span={{ base: 12, sm: 6 }}>
             {/* information seat */}
             <Card p="lg" radius="xl" mb="md" bg="white">
               <Group justify="apart">
@@ -585,68 +640,15 @@ export default function UserPlayerPage({
               </Group>
             </Card>
 
-            {/* Table seats */}
-            <Card p="lg" radius="xl" bg="white" mt="md">
-              <Title order={3} mb="md">
-                Table Seats
-              </Title>
-              {tableSeats.length === 0 ? (
-                <Text c="dimmed" ta="center">
-                  No seats available for this table
-                </Text>
-              ) : (
-                <Flex direction="column" gap="sm">
-                  {tableSeats
-                    .filter((seat) => seat.number !== 0)
-                    .map((seat) => (
-                      <Paper
-                        key={seat.id}
-                        p="md"
-                        withBorder
-                        style={
-                          firstLoad || seat.sessionId
-                            ? {}
-                            : {
-                                borderLeft: `4px solid ${
-                                  seatResponses[seat.id] === ResponseType.YES
-                                    ? "green"
-                                    : seatResponses[seat.id] === ResponseType.NO
-                                    ? "red"
-                                    : seatResponses[seat.id] ===
-                                      ResponseType.SERVICE_REQUEST
-                                    ? "yellow"
-                                    : "gray"
-                                }`,
-                              }
-                        }
-                      >
-                        <Group justify="space-between">
-                          <Text fw={500}>Seat {seat.number}</Text>
-                          <Text c="dimmed">
-                            {seatResponses[seat.id]
-                              ? seatResponses[seat.id] === ResponseType.YES
-                                ? "Yes"
-                                : seatResponses[seat.id] === ResponseType.NO
-                                ? "No"
-                                : "Service Request"
-                              : "No response"}
-                          </Text>
-                        </Group>
-                      </Paper>
-                    ))}
-                </Flex>
-              )}
-            </Card>
-          </Grid.Col>
-
-          <Grid.Col span={{ base: 12, sm: 6 }}>
             {/* Current prompt and response */}
             <Card p="lg" radius="xl" bg="white">
               <Title order={3} mb="xs">
                 {isDealerPrompt ? "Player-Dealer Prompt" : "Current Prompt"}
               </Title>
               <Text size="sm" c="#596063" mb="md">
-                Thank you, we received your request
+                {isDealerPrompt
+                  ? "Would you like to be the player-dealer for the next round?"
+                  : "Please respond using the buttons below"}
               </Text>
 
               <div
@@ -756,21 +758,13 @@ export default function UserPlayerPage({
                   mt="md"
                   style={{ opacity: 0.7 }}
                 >
-                  {selectedResponse === ResponseType.SERVICE_REQUEST
-                    ? "Thank you, we received your request."
-                    : "Thank you for your response!"}
-                  &nbsp;
-                  {isDealerPrompt
-                    ? selectedResponse === ResponseType.YES
-                      ? "You will be notified when your dealer session begins."
-                      : "A new dealer will be selected."
-                    : "Please wait for the next prompt."}
+                  Thank you, we received your request
                 </Text>
               )}
             </Card>
 
             {/* Table messages */}
-            <Card p="lg" radius="xl" bg="white" mt="md">
+            {/* <Card p="lg" radius="xl" bg="white" mt="md">
               <Group justify="space-between" mb="md">
                 <Title order={3}>Table Messages</Title>
                 <Button
@@ -820,7 +814,7 @@ export default function UserPlayerPage({
                   )}
                 </>
               )}
-            </Card>
+            </Card> */}
           </Grid.Col>
         </Grid>
       </Container>
