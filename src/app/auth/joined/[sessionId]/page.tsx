@@ -503,7 +503,7 @@ export default function UserPlayerPage({
               <Title order={4}>PRS Player Interface</Title>
               <Text size="sm" c="dimmed">
                 Table {sessions?.seat.table?.name}, Seat{" "}
-                {String.fromCharCode(64 + Number(sessions?.seat?.number || 0))}
+                {Number(sessions?.seat?.number || 0)}
               </Text>
             </div>
             <Group>
@@ -646,9 +646,7 @@ export default function UserPlayerPage({
                 {isDealerPrompt ? "Player-Dealer Prompt" : "Current Prompt"}
               </Title>
               <Text size="sm" c="#596063" mb="md">
-                {isDealerPrompt
-                  ? "Would you like to be the player-dealer for the next round?"
-                  : "Please respond using the buttons below"}
+                Thank you, we received your request
               </Text>
 
               <div

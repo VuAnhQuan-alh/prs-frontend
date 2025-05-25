@@ -174,13 +174,13 @@ export function useWebSocket() {
         setLastMessage(message);
 
         // Show notification for player joined
-        showNotification({
-          title: "Player Joined",
-          message:
-            data.message ||
-            `A player has joined table ${data.tableName || data.tableId}`,
-          color: "green",
-        });
+        // showNotification({
+        //   title: "Player Joined",
+        //   message:
+        //     data.message ||
+        //     `A player has joined table ${data.tableName || data.tableId}`,
+        //   color: "green",
+        // });
       });
 
       socket.on("playerLeft", (data) => {
@@ -195,13 +195,13 @@ export function useWebSocket() {
         setLastMessage(message);
 
         // Show notification for player left
-        showNotification({
-          title: "Player Left",
-          message:
-            data.message ||
-            `A player has left table ${data.tableName || data.tableId}`,
-          color: "orange",
-        });
+        // showNotification({
+        //   title: "Player Left",
+        //   message:
+        //     data.message ||
+        //     `A player has left table ${data.tableName || data.tableId}`,
+        //   color: "orange",
+        // });
       });
 
       socket.on("notification", (data) => {

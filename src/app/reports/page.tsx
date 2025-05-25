@@ -188,7 +188,7 @@ export default function ReportsPage() {
         response.seat?.number ? "Seat " + response.seat.number : "-",
         response.prompt?.title || "Unknown Prompt",
         response.type || "-",
-        new Date(response.createdAt).toLocaleString(),
+        format(new Date(response.createdAt), "MM/dd/yyyy HH:mm"),
       ].join(",");
     });
 
@@ -382,7 +382,7 @@ export default function ReportsPage() {
                       )}
                     </Table.Td>
                     <Table.Td ta="end">
-                      {format(new Date(response.createdAt), "MM/dd/yyyy")}
+                      {format(new Date(response.createdAt), "MM/dd/yyyy HH:mm")}
                     </Table.Td>
                   </Table.Tr>
                 ))

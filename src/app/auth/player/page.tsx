@@ -217,7 +217,6 @@ export default function SeatSetupPage() {
         </form>
 
         <Text c="dimmed" size="sm" ta="center" mt="md">
-          Login with more rule?{" "}
           <Link href="/" className="text-blue-500 hover:underline">
             Choose another role
           </Link>

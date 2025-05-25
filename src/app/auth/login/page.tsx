@@ -129,7 +129,6 @@ export default function LoginPage() {
         </form>
 
         <Text c="dimmed" size="sm" ta="center" mt="md">
-          Login with more rule?{" "}
           <Link href="/auth/player" className="text-blue-500 hover:underline">
             Choose another role
           </Link>
