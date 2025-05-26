@@ -428,11 +428,7 @@ export default function UserPlayerPage({
 
       if (response === ResponseType.SERVICE_REQUEST) {
         await serviceRequestService.create({
-          description:
-            "Service request from seat " +
-            String.fromCharCode(64 + Number(sessions.seat.number || 0)) +
-            " - table " +
-            sessions.seat.table.name,
+          description: "Service Requested",
           type: ServiceRequestType.PLAYER_DEALER,
           seatId: sessions.seatId,
           sessionId: sessions.id,

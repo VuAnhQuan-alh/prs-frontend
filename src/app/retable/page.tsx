@@ -619,7 +619,7 @@ export default function RetablePage() {
     try {
       const response = await tableService.sendNoteFSR(
         selectedTable.id,
-        tableMessage + ` (Table ${selectedTable.name})`
+        tableMessage
       );
 
       notifications.show({

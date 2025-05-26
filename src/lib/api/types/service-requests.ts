@@ -15,7 +15,12 @@ export interface ServiceRequest {
   createdAt: string;
   updatedAt: string;
   resolvedAt?: string;
-  seat?: Seat;
+  seat?: Seat & {
+    id: string;
+    number: string;
+    tableId: string;
+    tableName: string;
+  };
   session?: Session;
   assigned?: AuthUser;
 }

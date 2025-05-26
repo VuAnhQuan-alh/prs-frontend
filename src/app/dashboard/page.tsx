@@ -31,6 +31,7 @@ import { dashboardService, serviceRequestService } from "@/lib/api/services";
 import {
   ServiceRequestStatus,
   ServiceRequest,
+  ServiceRequestType,
 } from "@/lib/api/types/service-requests";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -257,10 +258,10 @@ export default function Dashboard() {
             <Table highlightOnHover striped>
               <Table.Thead>
                 <Table.Tr>
-                  <Table.Th>Type</Table.Th>
+                  <Table.Th>Caller</Table.Th>
                   <Table.Th>Description</Table.Th>
                   <Table.Th>Status</Table.Th>
-                  <Table.Th>Created</Table.Th>
+                  <Table.Th ta="end">Created</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -278,14 +279,24 @@ export default function Dashboard() {
                   </Table.Tr>
                 ) : (
                   serviceRequests.map((request) => (
-                    <Table.Tr key={request.id}>
-                      <Table.Td>{request.type.replace("_", " ")}</Table.Td>
+                    <Table.Tr
+                      key={request.id}
+                      style={{
+                        backgroundColor:
+                          request.type === ServiceRequestType.TABLE_ADMIN
+                            ? "rgba(255, 249, 219, 0.75)"
+                            : undefined,
+                      }}
+                    >
                       <Table.Td>
-                        {request.description.substring(0, 40)}...
+                        {request.type === ServiceRequestType.PLAYER_DEALER
+                          ? `Player from Seat ${request.seat?.number} (Table ${request.seat?.tableName})`
+                          : `Admin (Table ${request.seat?.tableName})`}
                       </Table.Td>
+                      <Table.Td>{request.description}</Table.Td>
                       <Table.Td>{renderStatusBadge(request.status)}</Table.Td>
-                      <Table.Td>
-                        {format(new Date(request.createdAt), "MMM dd, HH:mm")}
+                      <Table.Td ta="end">
+                        {format(new Date(request.createdAt), "MM/dd/yyyy")}
                       </Table.Td>
                     </Table.Tr>
                   ))

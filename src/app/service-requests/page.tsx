@@ -35,6 +35,7 @@ import {
   IconTrash,
   IconUserCircle,
 } from "@tabler/icons-react";
+import { useWebSocket } from "@/lib/api/services/websocket-service";
 
 export default function ServiceRequestsPage() {
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
@@ -54,11 +55,33 @@ export default function ServiceRequestsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [totalRequest, setTotalRequest] = useState(0);
 
+  const { lastMessage, isConnected } = useWebSocket();
+
   // Fetch service requests on component mount
   useEffect(() => {
     fetchServiceRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, currentPage, pageSize]);
+
+  // Subscribe to staff WebSocket channel when component mounts
+  useEffect(() => {
+    if (isConnected) {
+      // Subscribe to all session updates as a staff member
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const socket = (window as any).socket;
+      if (socket) {
+        socket.emit("subscribeToAllSessions");
+        console.log("Subscribed to all sessions as staff");
+      }
+    }
+  }, [isConnected]);
+
+  useEffect(() => {
+    if (lastMessage?.type === "SERVICE_REQUEST_CREATED") {
+      fetchServiceRequests();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastMessage]);
 
   // Function to fetch service requests from API
   const fetchServiceRequests = async () => {
@@ -233,8 +256,8 @@ export default function ServiceRequestsPage() {
                   >
                     <Table.Td>
                       {request.type === ServiceRequestType.PLAYER_DEALER
-                        ? "Player"
-                        : "Admin"}
+                        ? `Player from Seat ${request.seat?.number} (Table ${request.seat?.tableName})`
+                        : `Admin (Table ${request.seat?.tableName})`}
                     </Table.Td>
                     <Table.Td>{request.description}</Table.Td>
                     <Table.Td ta="center">
