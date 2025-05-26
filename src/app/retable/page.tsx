@@ -362,8 +362,26 @@ export default function RetablePage() {
       setTableSeats([]);
       setTablePrompt(null);
       setTableDealers([]);
+      localStorage.removeItem("activeSession");
     }
   }, [selectedTable]);
+
+  useEffect(() => {
+    if (!selectedTable || !tableSeats) {
+      localStorage.removeItem("activeSession");
+      return;
+    }
+    // set localstorage for session is active with selected table id and seat active list
+    const activeSeats = tableSeats.filter(
+      (seat) =>
+        seat.status === SeatStatus.ACTIVE && seat.user && seat.number !== 0
+    );
+    if (activeSeats.length > 0) {
+      localStorage.setItem("activeSession", "1");
+    } else {
+      localStorage.setItem("activeSession", "0");
+    }
+  }, [tableSeats, selectedTable]);
 
   // Function to fetch tables from API
   const fetchTables = async () => {

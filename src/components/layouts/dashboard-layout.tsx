@@ -190,10 +190,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const handleLogout = async (e: React.MouseEvent) => {
     // check user role is table, show popup to confirm logout
     if (user?.role === Role.TABLE) {
-      e.stopPropagation();
-      e.preventDefault();
-      openLogoutModal();
-      return;
+      const active = localStorage.getItem("activeSession");
+      if (active === "1") {
+        e.stopPropagation();
+        e.preventDefault();
+        openLogoutModal();
+        return;
+      }
     }
 
     await authService.logout();
